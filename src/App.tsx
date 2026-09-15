@@ -9,10 +9,13 @@ import { useExercise } from './hooks/useExercise'
 import { useRoute } from './hooks/useRoute'
 import { useShortLandscape } from './hooks/useMediaQuery'
 import { clefSetOf, isNoteModule, taskOf } from './core/module'
-import type { KeyConfig, NoteConfig } from './core/exercise'
+import type { IntervalConfig, KeyConfig, NoteConfig } from './core/exercise'
 import { loadInstrument, playMidi } from './audio/player'
 import { syncStatusBar } from './native/statusBar'
 import { cx } from './lib/cx'
+
+/** Segundos entre as notas de um intervalo melódico. */
+const MELODIC_GAP = 0.7
 
 export default function App() {
   const { t, i18n } = useTranslation()
@@ -23,7 +26,8 @@ export default function App() {
   const keyAsk = useSettings((s) => s.keyAsk)
   const keyMaxAccidentals = useSettings((s) => s.keyMaxAccidentals)
   const keyClefs = useSettings((s) => s.keyClefs)
-  const { ledgerBelow, ledgerAbove, accidentalMode, keyMax, slotHints } = useModuleConfig(module)
+  const { ledgerBelow, ledgerAbove, accidentalMode, keyMax, intervalAsk, intervalStyle } =
+    useModuleConfig(module)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   // paisagem curta (celular deitado): layout compacto que cabe numa tela
@@ -38,13 +42,18 @@ export default function App() {
     () => ({ ask: keyAsk, maxAccidentals: keyMaxAccidentals, clefs: keyClefs }),
     [keyAsk, keyMaxAccidentals, keyClefs],
   )
+  const intervalCfg = useMemo<IntervalConfig>(
+    () => ({ ask: intervalAsk, style: intervalStyle }),
+    [intervalAsk, intervalStyle],
+  )
 
   const exercise = useExercise({
     module,
     note: noteCfg,
     key: keyCfg,
-    onReveal: (midi) => {
-      if (audioEnabled) void playMidi(midi)
+    interval: intervalCfg,
+    onReveal: (midi, melodic) => {
+      if (audioEnabled) void playMidi(midi, melodic ? MELODIC_GAP : 0)
     },
   })
 
@@ -119,8 +128,6 @@ export default function App() {
             naming={naming}
             ledgerBelow={ledgerBelow}
             ledgerAbove={ledgerAbove}
-            accidentalMode={accidentalMode}
-            slotHints={slotHints}
             compact={compact}
           />
         </main>

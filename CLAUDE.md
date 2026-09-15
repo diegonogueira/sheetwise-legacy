@@ -45,9 +45,8 @@ So a note is a `Spelled` (`{ step: 0..6, alter: -1|0|1, octave }`), and its **ve
 position** on the staff is the **diatonic index** `octave * 7 + step` (C4 = 28, E4 = 30,
 G2 = 18) — the accidental does not move a note vertically. See `src/core/pitch.ts`.
 
-- The diatonic index is the analogue of fretwise's `Position`: it is what gets drawn and
-  what gets clicked. Slot numbers in `Question.validSlots`, in `Mark.slot` and in the
-  `data-slot` attribute of the click targets are all diatonic indices.
+- The diatonic index is the analogue of fretwise's `Position`: it is what gets drawn.
+  `Mark.slot` is a diatonic index.
 - **MIDI is output only.** `midiOf(spelled)` exists to feed the audio player. Never route
   an answer check through MIDI — `sameNote`/`checkNoteName` compare spelling, so an
   enharmonic is always wrong.
@@ -58,20 +57,19 @@ G2 = 18) — the accidental does not move a note vertically. See `src/core/pitch
 **lowest staff line** (treble = E4, bass = G2, alto = F3, tenor = D3…). Every other piece of
 geometry is arithmetic from there: a line is 2 diatonics, a line→space step is 1.
 
-`yForDiatonic` / `diatonicForY` are the drawing and hit-test functions. They take
-`topLineY` and `spacing` as **parameters** rather than assuming VexFlow's defaults, and
-`Staff.tsx` feeds them `stave.getYForLine(0)` and `stave.getSpacingBetweenLines()`. That is
-why the click targets can never drift from the drawing, and why the whole geometry is unit
-tested with no DOM. **Don't hardcode the 10px line spacing** — interactive staves are drawn
-at 14px precisely so the touch targets aren't 5px tall.
+`yForDiatonic` takes `topLineY` and `spacing` as **parameters** rather than assuming
+VexFlow's defaults, and `Staff.tsx` feeds it `stave.getYForLine(0)` and
+`stave.getSpacingBetweenLines()`. That is why the crop can never drift from the drawing, and
+why the geometry is unit tested with no DOM. **Don't hardcode the 10px line spacing** — read
+it back from the `Stave`.
 
 ### Modules are derived, not enumerated
 
 `src/core/module.ts` builds the module list as `tarefa × conjunto-de-claves` with a template
-literal type (`readNote:piano`, `markNote:bass`, plus the standalone `readKey`). Adding a
-clef set in `clefSet.ts` creates both note modules automatically and makes TypeScript demand
-the new entries wherever a `Record<Module, …>` is used. The menu (`Sidebar.tsx`) and the URLs
-(`lib/routes.ts`) are derived the same way, so **there is no list of 13 things to keep in sync.**
+literal type (`readNote:piano`, `readInterval:cello`, plus the standalone `readKey`).
+Adding a clef set in `clefSet.ts` creates both note modules automatically and makes
+TypeScript demand the new entries wherever a `Record<Module, …>` is used. The menu
+(`Sidebar.tsx`) and the URLs (`lib/routes.ts`) are derived the same way, so **there is no list of 13 things to keep in sync.**
 
 `single` vs `grand` layout is a real musical distinction, not a rendering detail:
 - `grand` (piano) draws **both** staves at once and the note lands on one of them.
@@ -86,39 +84,39 @@ the new entries wherever a `Record<Module, …>` is used. The menu (`Sidebar.tsx
   with a key signature it is the point of the question, so the ♭/♮/♯ selector is shown and
   the letters follow it; without one the accidental is drawn next to the note, so asking for
   it would only test copying and the letters carry it instead (`C♯ D♯ E♯…`).
+- **readInterval** — two notes on one staff (in `grand`, the drawn staff), melodic or
+  harmonic (`question.harmonic` → `Staff`'s `chord` prop). The interval comes from
+  **spelling** (`src/core/interval.ts`): the number is the diatonic distance, the quality is
+  what the accidentals do to it, so F–B (A4) and F–C♭ (d5) are different answers. `intervalAsk`
+  `number` checks only the number; `quality` checks both, against the 13 `INTERVAL_CHOICES`
+  (exactly the intervals of a major scale). The generator guarantees the answer is always one
+  of them: inside a key signature it is by construction, and in `note` mode it only draws alter
+  pairs that land in the list — so no A2/d4/doubly-augmented question with no button for it.
+  Same `alter: 0` drawing rule as readNote in `key` mode.
+- **readKey** — a key signature is **ambiguous** between the relative major and minor, so
+  `question.keyAsk` always says which mode is being asked and every choice is that mode.
+  Never "fix" this by accepting either answer.
+
 ### `accidentalMode`: where the accidental comes from
 
 `none` (only naturals) · `note` (drawn beside the notehead) · `key` (**the default**: a key
 signature at the clef, and the note is drawn *clean*).
 
 In `key` mode the note's `alter` is not random — it is `alterInKey(step, keySig)`, exactly
-what the signature imposes. Two consequences the UI must respect, or the exercise gives
-itself away:
-
-- the mark is drawn with **`alter: 0`** — repeating the accidental next to the notehead is
-  both wrong notation and the answer handed over;
-- in markNote the student does **not** arm the accidental: `answerSlot` derives it from the
-  signature (`useExercise`), the same way the page does. Clicking the F line in D major is
-  answering F♯.
-
-- **markNote** — any drawn position spelling that note counts. `question.validSlots` is the
-  **single source of truth**; on a wrong answer every valid slot is revealed as a `ghost`.
-  The success message names **what the student clicked**, not the octave the generator
-  happened to pick — they are both correct and citing the other one confuses.
-- **readKey** — a key signature is **ambiguous** between the relative major and minor, so
-  `question.keyAsk` always says which mode is being asked and every choice is that mode.
-  Never "fix" this by accepting either answer.
+what the signature imposes. So the mark is drawn with **`alter: 0`**: repeating the
+accidental next to the notehead is both wrong notation and the answer handed over.
 
 ## State is split in two
 
 - **`useSettings`** (`src/store/settings.ts`, zustand + `persist`, key `sheetwise-settings`,
-  currently **version 3**): what the user chose. Adding a top-level field is safe. Adding a
+  currently **version 4**): what the user chose. Adding a top-level field is safe. Adding a
   `ModuleConfig` field is safe too — `useModuleConfig` backfills missing fields from
   `DEFAULT_MODULE_CONFIG` on **read**, so persisted states never need a migration for a new
   option. Renaming or removing a field **does** need a `version` bump plus a `migrate`.
   So does *changing a default*: the backfill only fills what is **absent**, so a value
   already written keeps winning (v2 exists for exactly that — it turned accidentals on
-  everywhere; v3 replaced the `accidentals` boolean with `accidentalMode`). Only migrate a
+  everywhere; v3 replaced the `accidentals` boolean with `accidentalMode`; v4 dropped the
+  removed "mark notes" task — its `markNote:*` modules and the `slotHints` field). Only migrate a
   default when the intent is to override past choices.
 - **`useExercise`** (`src/hooks/useExercise.ts`): the current question and answer. Per
   session, reset on every `next()` and on every module or config change. That reset happens
@@ -130,7 +128,10 @@ itself away:
 Config objects passed to `useExercise` must be memoized in `App.tsx` (`useMemo`) — the hook
 regenerates the question whenever a config **reference** changes.
 
-Language lives outside the store, in `localStorage['sheetwise-lang']`.
+Language lives outside the store, in `localStorage['sheetwise-lang']`. So does the last
+opened module, `localStorage['sheetwise-module']` (`useRoute`): a module URL always wins, but
+a path with no module — `/`, which is how the Android app always starts, or a stale link —
+reopens the last one. `parseModule` drops a stored id that no longer exists.
 
 ## Note names are a setting, not a language
 
@@ -141,7 +142,8 @@ the UI language, and the labels come from `noteLabel`/`stepLabel` in `src/core/p
 ## UI placement rules
 
 Modules are chosen in the Sidebar; **all configuration lives in the Settings modal**, with
-sections gated by predicates (`isNoteModule`, `isMarkNote`, `usesCClef`, `module === 'readKey'`).
+sections gated by predicates (`isNoteModule`, `isReadInterval`, `usesCClef`,
+`module === 'readKey'`).
 Don't add settings to the exercise panel.
 
 ## Styling
@@ -150,23 +152,14 @@ Tailwind v4 through the Vite plugin — there is no `tailwind.config.*`. Design 
 (colors, radius) are `@theme` custom properties in `src/index.css`, exposed as utilities
 like `text-ink`, `bg-accent-soft`, `border-line`. There is only a light theme.
 
-The `.staff-slot` click targets live **inside the VexFlow SVG**, which sets a stroke on a
-parent group — `stroke: none` in the CSS is load-bearing, not decoration. Same for
-`.staff-hint`.
-
-`.staff-ledger-preview` (the ledger lines that light up under the hovered slot) is shown by
-`.staff-slot:hover + .staff-ledger-preview`, an **adjacent sibling** selector: the `<g>` must
-be inserted immediately after its own `rect` in `Staff.tsx`. Putting anything between them —
-the hint label, for instance — silently breaks the hover.
-
 ## The Staff component
 
 `src/components/Staff/Staff.tsx` draws with VexFlow and then does two things by hand:
 
 1. **Centers the notes.** The formatter left-aligns, which would glue the note to the clef.
    The shift is computed from the notes' bounding box (position **plus width**) and clamped
-   to the note area, so a row of revealed ghosts never spills past the barline. The shift is
-   applied to the **`TickContext`**, never with `setXShift`: a note's `x_shift` belongs to
+   to the note area, so the two notes of a melodic interval never spill past the barline.
+   The shift is applied to the **`TickContext`**, never with `setXShift`: a note's `x_shift` belongs to
    VexFlow, which uses it to open room for the accidental, and overwriting it moved only the
    notehead — the accidental reads the absolute X (from the tick context) and stayed parked
    next to the clef.
@@ -202,8 +195,8 @@ mipmap from `src/assets/brand/icon.svg` (the tile, same art as the favicon) and
 There are no component/E2E tests — only `src/core/*.test.ts` and `src/lib/routes.test.ts`
 (Vitest). To verify UI behavior, drive the dev server with a headless browser:
 `playwright-core` (devDep) launching the system Chromium at `/usr/bin/chromium`, navigate to
-`localhost:5173`, interact, screenshot. Stable selectors: `rect.staff-slot` (with
-`data-slot` and `data-clef` attributes), `.staff`, `.staff-hint`.
+`localhost:5173`, interact, screenshot. Stable selector: `.staff` (the `<svg>` inside it
+is the drawn staff).
 
 ## Not yet built
 

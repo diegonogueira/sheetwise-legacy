@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_MODULE, moduleFromPath, pathForModule } from './routes'
+import { DEFAULT_MODULE, moduleFromPath, parseModule, pathForModule } from './routes'
 import { MODULES } from '../core/module'
 
 describe('rotas', () => {
@@ -16,8 +16,9 @@ describe('rotas', () => {
 
   it('usa caminhos legíveis em inglês', () => {
     expect(pathForModule('readNote:treble')).toBe('/read-note/treble')
-    expect(pathForModule('markNote:piano')).toBe('/mark-note/piano')
+    expect(pathForModule('readNote:piano')).toBe('/read-note/piano')
     expect(pathForModule('readNote:c')).toBe('/read-note/c-clef')
+    expect(pathForModule('readInterval:cello')).toBe('/read-interval/cello')
     expect(pathForModule('readKey')).toBe('/read-key')
   })
 
@@ -30,5 +31,19 @@ describe('rotas', () => {
     expect(moduleFromPath('/')).toBe(DEFAULT_MODULE)
     expect(moduleFromPath('/nao-existe')).toBe(DEFAULT_MODULE)
     expect(moduleFromPath('/read-note')).toBe(DEFAULT_MODULE)
+  })
+
+  it('sem módulo na URL, volta ao último aberto', () => {
+    expect(moduleFromPath('/', 'readKey')).toBe('readKey')
+    expect(moduleFromPath('/mark-note/treble', 'readInterval:cello')).toBe('readInterval:cello')
+    // um link direto vence a memória
+    expect(moduleFromPath('/read-note/bass', 'readKey')).toBe('readNote:bass')
+  })
+
+  it('só aceita como último módulo um id que ainda existe', () => {
+    expect(parseModule('readInterval:piano')).toBe('readInterval:piano')
+    expect(parseModule('markNote:treble')).toBeNull() // módulo removido
+    expect(parseModule('lixo')).toBeNull()
+    expect(parseModule(null)).toBeNull()
   })
 })

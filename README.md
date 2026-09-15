@@ -12,8 +12,12 @@ lembradas separadamente.
 **Ler notas** (pauta → nome) — uma nota acende na pauta e você diz qual é. Por padrão a pauta
 traz uma **armadura** e a nota vem limpa: quem diz que aquele Fá é Fá♯ é a armadura, então
 você escolhe o acidente e a letra — que é a leitura de verdade.
-**Marcar notas** (nome → pauta) — o enunciado pede uma nota e você clica na linha ou no
-espaço certo; vale qualquer oitava da faixa desenhada.
+
+**Intervalos** (pauta → intervalo) — duas notas na pauta, uma depois da outra (melódico) ou
+juntas (harmônico), e você diz a distância. Por padrão só o número (2ª a 8ª), que é o que o
+olho precisa reconhecer à primeira vista; com qualidade, as 13 opções da escala (3ª menor,
+4ª justa, 4ª aumentada, 5ª diminuta…). O intervalo sai da grafia: Fá–Si e Fá–Dó♭ soam igual,
+mas são 4ª aumentada e 5ª diminuta.
 
 Os dois existem em seis configurações de clave:
 
@@ -39,8 +43,9 @@ enunciado sempre diz qual das duas está pedindo.
 Nomes das notas em **C D E** ou **Dó Ré Mi** (é configuração, não idioma), som ligado ou
 desligado, e por módulo: quantas **linhas suplementares** entram na faixa (de 0 a 5 de cada
 lado), de onde vêm os **acidentes** (nenhum · desenhados na nota · impostos pela armadura,
-que é o padrão) e até quantos a armadura pode ter, e — em "Marcar notas" — se as posições da
-pauta aparecem **rotuladas** como ajuda de leitura. A tonalidade tem ainda o modo perguntado
+que é o padrão) e até quantos a armadura pode ter. Em "Intervalos", ainda o tipo (melódico,
+harmônico ou os dois) e se a resposta é só o número ou também a qualidade. A tonalidade tem
+o modo perguntado
 (maior/menor/os dois), o limite de acidentes e em quais claves a armadura é desenhada.
 
 Interface em português e inglês.
@@ -87,10 +92,11 @@ src/
     clef.ts        cada clave é o diatônico da sua linha inferior; geometria da pauta
     clefSet.ts     conjuntos de clave (Sol, Fá, Dó, piano, violoncelo, viola)
     keys.ts        as 15 armaduras, tônicas maior e menor, ordem dos acidentes
+    interval.ts    intervalo entre duas notas escritas (número + qualidade)
     module.ts      identidade dos módulos (tarefa × conjunto de claves)
     exercise.ts    gera as questões e valida as respostas
   components/
-    Staff/         a pauta (VexFlow) + as posições clicáveis
+    Staff/         a pauta (VexFlow), com notas soltas ou em acorde
     ExercisePanel  enunciado, resposta e feedback de cada tarefa
     NotePicker     as 7 letras, com o acidente da questão estampado
     Sidebar, TopBar, Settings, ui/Segmented
@@ -108,8 +114,8 @@ diferentes — distinguir as duas é o que se está aprendendo, então uma respo
 nunca vale. O MIDI só existe na saída de áudio.
 
 **A posição vertical é um número.** O índice diatônico (`oitava × 7 + grau`) é o que se
-desenha e o que se clica; o acidente não move a nota. Isso deixa a geometria da pauta — e o
-alvo de cada clique — em aritmética simples e testável sem navegador.
+desenha; o acidente não move a nota. Isso deixa a geometria da pauta em aritmética simples e
+testável sem navegador.
 
 **Uma clave é a nota da sua linha de baixo.** Tudo o mais é consequência, então acrescentar
 a clave de Dó na 1ª ou na 5ª linha custou um número.

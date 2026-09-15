@@ -1,14 +1,15 @@
 import type { ReactNode } from 'react'
 import { ArrowRight, CheckCircle2, XCircle } from 'lucide-react'
-import { Trans, useTranslation } from 'react-i18next'
+import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { Staff, type Mark } from './Staff/Staff'
 import { AlterPicker, NotePicker } from './NotePicker'
 import { taskOf } from '../core/module'
-import { diatonic, noteLabel, spelledAt, type Alter, type Naming } from '../core/pitch'
+import { diatonic, noteLabel, type Naming } from '../core/pitch'
 import { keyTonicLabel, type KeyMode, type KeySignature } from '../core/keys'
 import type { LedgerCount } from '../core/clef'
-import type { AccidentalMode } from '../core/exercise'
+import { intervalChoices, type IntervalGuess } from '../core/exercise'
+import { INTERVAL_NUMBERS } from '../core/interval'
 import type { ExerciseApi } from '../hooks/useExercise'
 import { cx } from '../lib/cx'
 
@@ -51,8 +52,6 @@ interface BodyProps {
   naming: Naming
   ledgerBelow: LedgerCount
   ledgerAbove: LedgerCount
-  accidentalMode: AccidentalMode
-  slotHints: boolean
   compact: boolean
   nextButton: ReactNode
 }
@@ -129,77 +128,98 @@ function ReadNoteBody(props: BodyProps) {
 }
 
 /**
- * Marcar notas: o enunciado dá o nome e o aluno clica na pauta. Vale qualquer oitava da
- * faixa desenhada (`validSlots`); ao errar, todas as posições certas aparecem como fantasmas.
+ * Nome de um intervalo: "terça menor" ou "3ª m" (curto, nos botões). Sem qualidade é só o
+ * número — "terça", "3ª". Os nomes são palavras do idioma, então vêm da i18n; só os nomes de
+ * NOTA são configuração (ver `noteLabel`).
  */
-function MarkNoteBody(props: BodyProps) {
-  const { exercise, naming, ledgerBelow, ledgerAbove, accidentalMode, slotHints, compact, nextButton } = props
-  const { question, status, chosenSlot } = exercise
+function intervalLabel(guess: IntervalGuess, t: TFunction, short = false): string {
+  const { number, quality } = guess
+  if (!quality) return t(short ? `interval.short.${number}` : `interval.name.${number}`)
+  return short
+    ? t('interval.fullShort', { number, quality: t(`interval.qualityShort.${quality}`) })
+    : t('interval.full', { name: t(`interval.name.${number}`), quality: t(`interval.quality.${quality}`) })
+}
+
+const CHOICE_BUTTON =
+  'rounded-xl border border-line bg-surface font-semibold text-ink transition-colors hover:border-accent hover:bg-accent-soft'
+
+/**
+ * Intervalos: duas notas na pauta e o aluno nomeia a distância. Só o número tem 7 botões,
+ * como as letras; com qualidade são 13, arrumados em colunas POR NÚMERO (a 3ª menor em cima
+ * da maior) — o aluno lê primeiro a distância e depois decide a qualidade, e a 4ª aumentada
+ * fica ao lado da 5ª diminuta, que é o mesmo som escrito de outro jeito.
+ */
+function ReadIntervalBody(props: BodyProps) {
+  const { exercise, naming, ledgerBelow, ledgerAbove, compact, nextButton } = props
+  const { question, status, chosenInterval } = exercise
   const { t } = useTranslation()
   const answered = status !== 'idle'
   const correct = status === 'correct'
-  const note = question.note!
+  const notes = question.notes!
+  const ask = question.intervalAsk!
 
-  // com armadura nada é desenhado ao lado da nota — o acidente já está na clave
-  const drawnAlter = (a: Alter): Alter => (question.keySig ? 0 : a)
-  const marks: Mark[] = []
-  if (chosenSlot !== null) {
-    marks.push({
-      slot: chosenSlot,
-      alter: drawnAlter(exercise.chosenAlter ?? exercise.alter),
-      variant: correct ? 'correct' : 'wrong',
-    })
-  }
-  if (status === 'wrong') {
-    for (const slot of question.validSlots ?? []) {
-      marks.push({ slot, alter: drawnAlter(note.alter), variant: 'ghost' })
-    }
-  }
+  const marks: Mark[] = notes.map((note) => ({
+    slot: diatonic(note),
+    // com armadura as notas vêm limpas, como na leitura de nota
+    alter: question.keySig ? 0 : note.alter,
+    variant: correct ? 'correct' : 'accent',
+    clef: question.clef,
+  }))
+
+  const choiceButton = (guess: IntervalGuess) => (
+    <button
+      key={`${guess.number}${guess.quality ?? ''}`}
+      type="button"
+      onClick={() => exercise.answerInterval(guess)}
+      title={intervalLabel(guess, t)}
+      aria-label={intervalLabel(guess, t)}
+      className={cx(
+        CHOICE_BUTTON,
+        ask === 'quality' ? 'px-0 text-xs sm:text-sm' : 'px-1 text-sm',
+        compact ? 'py-1.5' : 'py-2.5',
+      )}
+    >
+      {intervalLabel(guess, t, true)}
+    </button>
+  )
+
+  const choices = intervalChoices(ask)
 
   return (
     <div className={cx('flex flex-col items-center text-center', compact ? 'gap-2' : 'gap-4')}>
-      <p className="text-sm text-muted">
-        <Trans
-          i18nKey="exercise.markNote.prompt"
-          values={{ note: noteLabel(note, naming) }}
-          components={{ note: <span className="font-semibold text-accent" /> }}
-        />
-      </p>
-      {/* com armadura o acidente não é armado: quem altera a posição clicada é a própria
-          armadura desenhada, exatamente como na partitura */}
-      {!answered && accidentalMode === 'note' && (
-        <AlterPicker alter={exercise.alter} onAlter={exercise.setAlter} compact={compact} />
-      )}
+      <p className="text-sm text-muted">{t('exercise.readInterval.prompt')}</p>
       <Staff
         staves={question.staves}
         ledgerBelow={ledgerBelow}
         ledgerAbove={ledgerAbove}
         keySig={question.keySig}
         marks={marks}
-        onSelect={answered ? undefined : (slot) => exercise.answerSlot(slot)}
-        hints={!answered && slotHints ? naming : null}
+        chord={question.harmonic}
         width={staffWidth(compact)}
       />
       {!answered ? (
-        <p className="text-xs text-faint">{t('exercise.markNote.hint')}</p>
+        ask === 'quality' ? (
+          <div className="grid w-full grid-cols-7 gap-1.5">
+            {INTERVAL_NUMBERS.map((number) => (
+              <div key={number} className="flex flex-col gap-1.5">
+                {choices.filter((c) => c.number === number).map(choiceButton)}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className={cx('grid w-full gap-1.5', compact ? 'grid-cols-7' : 'grid-cols-4 sm:grid-cols-7')}>
+            {choices.map(choiceButton)}
+          </div>
+        )
       ) : (
         <Actions compact={compact} correct={correct} next={nextButton}>
-          {/* no acerto o texto nomeia o que o aluno DE FATO marcou: a resposta é válida em
-              qualquer oitava, então citar a oitava sorteada confundiria */}
-          {correct
-            ? t('exercise.markNote.correct', {
-                note:
-                  chosenSlot !== null
-                    ? noteLabel(spelledAt(chosenSlot, exercise.chosenAlter ?? 0), naming, true)
-                    : noteLabel(note, naming),
-              })
-            : t('exercise.markNote.wrong', {
-                note: noteLabel(note, naming),
-                chosen:
-                  chosenSlot !== null
-                    ? noteLabel(spelledAt(chosenSlot, exercise.chosenAlter ?? 0), naming, true)
-                    : '—',
-              })}
+          {/* a revelação dá o nome completo mesmo quando só o número foi perguntado: a
+              resposta já saiu, e ouvir "terça menor" junto do desenho é de graça */}
+          {t(correct ? 'exercise.readInterval.correct' : 'exercise.readInterval.wrong', {
+            interval: intervalLabel(question.interval!, t),
+            notes: notes.map((n) => noteLabel(n, naming)).join('–'),
+            chosen: chosenInterval ? intervalLabel(chosenInterval, t) : '—',
+          })}
         </Actions>
       )}
     </div>
@@ -293,8 +313,8 @@ export function ExercisePanel(props: Omit<BodyProps, 'nextButton'>) {
     >
       {task === 'readNote' ? (
         <ReadNoteBody {...body} />
-      ) : task === 'markNote' ? (
-        <MarkNoteBody {...body} />
+      ) : task === 'readInterval' ? (
+        <ReadIntervalBody {...body} />
       ) : (
         <ReadKeyBody {...body} />
       )}

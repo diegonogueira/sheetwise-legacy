@@ -11,7 +11,7 @@
   "nav": {
     "group": {
       "readNote": "Ler notas",
-      "markNote": "Marcar notas",
+      "readInterval": "Intervalos",
       "readKey": "Tonalidade"
     },
     "item": {
@@ -42,11 +42,10 @@
       "correct": "Certo! É {{note}}.",
       "wrong": "Era {{note}} — você marcou {{chosen}}."
     },
-    "markNote": {
-      "prompt": "Marque <note>{{note}}</note> na pauta.",
-      "hint": "Clique na linha ou no espaço certo.",
-      "correct": "Certo! {{note}} fica aí.",
-      "wrong": "Aí é {{chosen}}. {{note}} fica onde está marcado."
+    "readInterval": {
+      "prompt": "Que intervalo é este?",
+      "correct": "Certo! É uma {{interval}} ({{notes}}).",
+      "wrong": "Era uma {{interval}} ({{notes}}) — você marcou {{chosen}}."
     },
     "readKey": {
       "promptMajor": "Qual é a tonalidade maior desta armadura?",
@@ -60,13 +59,47 @@
       "minor": "{{tonic}} menor"
     }
   },
+  "interval": {
+    "name": {
+      "2": "segunda",
+      "3": "terça",
+      "4": "quarta",
+      "5": "quinta",
+      "6": "sexta",
+      "7": "sétima",
+      "8": "oitava"
+    },
+    "short": {
+      "2": "2ª",
+      "3": "3ª",
+      "4": "4ª",
+      "5": "5ª",
+      "6": "6ª",
+      "7": "7ª",
+      "8": "8ª"
+    },
+    "quality": {
+      "d": "diminuta",
+      "m": "menor",
+      "M": "maior",
+      "P": "justa",
+      "A": "aumentada"
+    },
+    "qualityShort": {
+      "d": "d",
+      "m": "m",
+      "M": "M",
+      "P": "J",
+      "A": "A"
+    },
+    "full": "{{name}} {{quality}}",
+    "fullShort": "{{number}}ª {{quality}}"
+  },
   "settings": {
     "title": "Configurações",
     "aria": {
       "close": "Fechar"
     },
-    "yes": "Sim",
-    "no": "Não",
     "naming": "Nomes das notas",
     "namingLetters": "C D E",
     "namingSolfege": "Dó Ré Mi",
@@ -92,7 +125,15 @@
     "keyMax": "Até quantos acidentes",
     "keyClefs": "Claves da armadura",
     "keyHelp": "Uma armadura serve a uma tonalidade maior e à sua relativa menor, então o enunciado sempre diz qual está pedindo.",
-    "slotHints": "Escrever as letras na pauta"
+    "intervalSection": "Intervalo",
+    "intervalAsk": "Responder",
+    "intervalAskNumber": "Número",
+    "intervalAskQuality": "Com qualidade",
+    "intervalStyle": "Tipo",
+    "intervalMelodic": "Melódico",
+    "intervalHarmonic": "Harmônico",
+    "intervalBoth": "Os dois",
+    "intervalHelp": "Melódico: uma nota depois da outra; harmônico: as duas juntas. O número (3ª) se lê contando linhas e espaços; a qualidade (3ª menor ou maior) depende dos acidentes — com armadura, é ela quem decide."
   },
   "line": {
     "1": "1ª",

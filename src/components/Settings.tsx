@@ -4,9 +4,9 @@ import { useTranslation } from 'react-i18next'
 import { useSettings, useModuleConfig } from '../store/settings'
 import { Segmented } from './ui/Segmented'
 import { C_CLEF_LINES } from '../core/clefSet'
-import { isMarkNote, isNoteModule, usesCClef, type Module } from '../core/module'
+import { isNoteModule, isReadInterval, usesCClef, type Module } from '../core/module'
 import { CLEF_IDS, LEDGER_COUNTS, type LedgerCount } from '../core/clef'
-import type { AccidentalMode, KeyAsk } from '../core/exercise'
+import type { AccidentalMode, IntervalAsk, IntervalStyle, KeyAsk } from '../core/exercise'
 import { cx } from '../lib/cx'
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
@@ -58,11 +58,10 @@ const KEY_MAX_OPTIONS = [
 
 /** Config do módulo ativo: faixa lida e acidentes. */
 function ModuleSettings({ module }: { module: Module }) {
-  const { ledgerBelow, ledgerAbove, accidentalMode, keyMax, slotHints } = useModuleConfig(module)
+  const { ledgerBelow, ledgerAbove, accidentalMode, keyMax } = useModuleConfig(module)
   const setLedger = useSettings((s) => s.setLedger)
   const setAccidentalMode = useSettings((s) => s.setAccidentalMode)
   const setKeyMax = useSettings((s) => s.setKeyMax)
-  const setSlotHints = useSettings((s) => s.setSlotHints)
   const { t } = useTranslation()
 
   return (
@@ -107,21 +106,44 @@ function ModuleSettings({ module }: { module: Module }) {
             />
           </Row>
         )}
-        {/* a ajuda das letras só existe onde se CLICA na pauta; na leitura ela entregaria
-            a resposta antes da pergunta */}
-        {isMarkNote(module) && (
-          <Row label={t('settings.slotHints')}>
-            <Segmented
-              size="sm"
-              value={slotHints ? 'on' : 'off'}
-              onChange={(v) => setSlotHints(module, v === 'on')}
-              options={[
-                { value: 'on', label: t('settings.yes') },
-                { value: 'off', label: t('settings.no') },
-              ]}
-            />
-          </Row>
-        )}
+      </div>
+    </Section>
+  )
+}
+
+/** Config do módulo de intervalo: melódico/harmônico e o que se responde. Lembrada por módulo. */
+function IntervalSettings({ module }: { module: Module }) {
+  const { intervalAsk, intervalStyle } = useModuleConfig(module)
+  const setIntervalAsk = useSettings((s) => s.setIntervalAsk)
+  const setIntervalStyle = useSettings((s) => s.setIntervalStyle)
+  const { t } = useTranslation()
+
+  return (
+    <Section title={t('settings.intervalSection')} help={t('settings.intervalHelp')}>
+      <div className="divide-y divide-line">
+        <Row label={t('settings.intervalStyle')}>
+          <Segmented
+            size="sm"
+            value={intervalStyle}
+            onChange={(v) => setIntervalStyle(module, v as IntervalStyle)}
+            options={[
+              { value: 'melodic', label: t('settings.intervalMelodic') },
+              { value: 'harmonic', label: t('settings.intervalHarmonic') },
+              { value: 'both', label: t('settings.intervalBoth') },
+            ]}
+          />
+        </Row>
+        <Row label={t('settings.intervalAsk')}>
+          <Segmented
+            size="sm"
+            value={intervalAsk}
+            onChange={(v) => setIntervalAsk(module, v as IntervalAsk)}
+            options={[
+              { value: 'number', label: t('settings.intervalAskNumber') },
+              { value: 'quality', label: t('settings.intervalAskQuality') },
+            ]}
+          />
+        </Row>
       </div>
     </Section>
   )
@@ -244,6 +266,7 @@ export function SettingsPanel({ module, onClose }: { module: Module; onClose: ()
           </Row>
         </div>
 
+        {isReadInterval(module) && <IntervalSettings module={module} />}
         {isNoteModule(module) && <ModuleSettings module={module} />}
         {usesCClef(module) && <CClefSettings />}
         {module === 'readKey' && <KeySettings />}

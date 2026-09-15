@@ -1,4 +1,4 @@
-import { KeySquare, Music2, MousePointerClick } from 'lucide-react'
+import { ArrowUpDown, KeySquare, Music2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { CLEF_SET_IDS } from '../core/clefSet'
 import { NOTE_TASKS, type Module, type Task } from '../core/module'
@@ -15,7 +15,7 @@ interface SidebarProps {
 
 const TASK_ICON: Record<Task, typeof Music2> = {
   readNote: Music2,
-  markNote: MousePointerClick,
+  readInterval: ArrowUpDown,
   readKey: KeySquare,
 }
 

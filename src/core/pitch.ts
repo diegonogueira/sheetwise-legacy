@@ -7,7 +7,7 @@
 //   `Spelled`  = { step, alter, octave }  → a identidade escrita (letra + acidente)
 //   diatônico  = octave * 7 + step        → a POSIÇÃO VERTICAL na pauta, sem o acidente
 //
-// O diatônico é o análogo do `Position` do fretwise: é o que se desenha e o que se clica.
+// O diatônico é o análogo do `Position` do fretwise: é o que se desenha.
 // O MIDI continua existindo, mas só como SAÍDA (áudio) — ver `midiOf`.
 
 /** Grau da escala natural: 0 = C, 1 = D, ... 6 = B. */

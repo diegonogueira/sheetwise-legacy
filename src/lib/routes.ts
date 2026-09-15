@@ -1,5 +1,5 @@
 // Mapa entre cada módulo de treino e sua URL (em inglês). A URL é a fonte da verdade do
-// módulo ativo — ver `src/hooks/useRoute.ts`. Os caminhos são derivados de tarefa +
+// módulo ativo — ver `src/hooks/useRoute.ts`, que também lembra o último módulo aberto. Os caminhos são derivados de tarefa +
 // conjunto de claves, então não há lista para manter em dia aqui.
 
 import { MODULES, isNoteModule, type Module } from '../core/module'
@@ -8,7 +8,7 @@ import type { NoteTask } from '../core/module'
 
 const TASK_PATH: Record<NoteTask | 'readKey', string> = {
   readNote: '/read-note',
-  markNote: '/mark-note',
+  readInterval: '/read-interval',
   readKey: '/read-key',
 }
 
@@ -21,7 +21,7 @@ const SET_PATH: Record<ClefSetId, string> = {
   viola: 'viola',
 }
 
-/** Módulo aberto quando a URL não aponta para nenhum (ex.: "/" na primeira visita). */
+/** Módulo da primeira visita: a URL não aponta para nenhum e ainda não há um último aberto. */
 export const DEFAULT_MODULE: Module = 'readNote:treble'
 
 /** Caminho canônico (kebab-case, em inglês) de um módulo. */
@@ -35,8 +35,16 @@ const PATH_MODULE: Record<string, Module> = Object.fromEntries(
   MODULES.map((m) => [pathForModule(m), m]),
 )
 
-/** Resolve um pathname para o módulo correspondente (cai no padrão se desconhecido). */
-export function moduleFromPath(pathname: string): Module {
+/**
+ * Resolve um pathname para o módulo correspondente. Um caminho que não é de módulo ("/", um
+ * link antigo) cai no `fallback` — o último módulo aberto, quando houver.
+ */
+export function moduleFromPath(pathname: string, fallback: Module = DEFAULT_MODULE): Module {
   const clean = pathname.replace(/\/+$/, '') || '/'
-  return PATH_MODULE[clean] ?? DEFAULT_MODULE
+  return PATH_MODULE[clean] ?? fallback
+}
+
+/** Valida um id de módulo guardado: um id que deixou de existir vira `null`. */
+export function parseModule(id: string | null): Module | null {
+  return MODULES.find((m) => m === id) ?? null
 }

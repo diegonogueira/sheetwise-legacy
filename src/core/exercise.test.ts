@@ -1,20 +1,24 @@
 import { describe, expect, it } from 'vitest'
 import {
+  DEFAULT_INTERVAL_CONFIG,
   DEFAULT_KEY_CONFIG,
   DEFAULT_NOTE_CONFIG,
+  checkInterval,
   checkKey,
   checkNoteName,
-  checkSlot,
   generateQuestion,
+  intervalChoices,
   rangeFor,
+  type IntervalConfig,
   type KeyConfig,
   type NoteConfig,
   type Rng,
 } from './exercise'
 import { CLEF_SET_IDS } from './clefSet'
 import { MODULES, isNoteModule, taskOf, type Module } from './module'
-import { diatonic, spelledAt, type Spelled } from './pitch'
+import { diatonic, type Spelled } from './pitch'
 import { alterInKey, signatureByFifths, signaturesUpTo } from './keys'
+import { INTERVAL_NUMBERS, intervalBetween, isIntervalChoice } from './interval'
 
 /** RNG determinístico (mulberry32) — as questões viram reproduzíveis. */
 function seeded(seed: number): Rng {
@@ -38,8 +42,12 @@ function keyCfg(patch: Partial<KeyConfig> = {}): KeyConfig {
   return { ...DEFAULT_KEY_CONFIG, ...patch }
 }
 
+function intervalCfg(patch: Partial<IntervalConfig> = {}): IntervalConfig {
+  return { ...DEFAULT_INTERVAL_CONFIG, ...patch }
+}
+
 const READ_MODULES = CLEF_SET_IDS.map((s): Module => `readNote:${s}`)
-const MARK_MODULES = CLEF_SET_IDS.map((s): Module => `markNote:${s}`)
+const INTERVAL_MODULES = CLEF_SET_IDS.map((s): Module => `readInterval:${s}`)
 
 describe('cobertura dos módulos', () => {
   it('gera os 13 módulos (2 tarefas × 6 conjuntos + tonalidade)', () => {
@@ -155,78 +163,6 @@ describe('readNote', () => {
   })
 })
 
-describe('markNote', () => {
-  it('nunca deixa a questão sem resposta possível', () => {
-    for (const module of MARK_MODULES) {
-      for (const seed of SEEDS) {
-        const q = generateQuestion({ module, note: noteCfg(), rng: seeded(seed) })
-        expect(q.validSlots!.length).toBeGreaterThan(0)
-      }
-    }
-  })
-
-  it('lista só posições com a letra pedida, e todas as da faixa', () => {
-    for (const seed of SEEDS) {
-      const cfg = noteCfg()
-      const q = generateQuestion({ module: 'markNote:treble', note: cfg, rng: seeded(seed) })
-      const { lo, hi } = rangeFor(q.clef, cfg)
-      for (const slot of q.validSlots!) {
-        expect(spelledAt(slot).step).toBe(q.note!.step)
-        expect(slot).toBeGreaterThanOrEqual(lo)
-        expect(slot).toBeLessThanOrEqual(hi)
-      }
-      // nenhuma posição da faixa com a letra certa pode ter ficado de fora
-      for (let d = lo; d <= hi; d++) {
-        if (spelledAt(d).step === q.note!.step) expect(q.validSlots).toContain(d)
-      }
-    }
-  })
-
-  it('aceita a nota pedida em qualquer oitava da faixa', () => {
-    const q = generateQuestion({ module: 'markNote:bass', note: noteCfg(), rng: seeded(11) })
-    for (const slot of q.validSlots!) {
-      expect(checkSlot(q, slot, q.note!.alter)).toBe(true)
-    }
-  })
-
-  it('com armadura, a posição vale com o acidente que a armadura impõe', () => {
-    for (const seed of SEEDS) {
-      const q = generateQuestion({
-        module: 'markNote:treble',
-        note: noteCfg({ accidentalMode: 'key' }),
-        rng: seeded(seed),
-      })
-      for (const slot of q.validSlots!) {
-        const imposed = alterInKey(spelledAt(slot).step, q.keySig!)
-        expect(checkSlot(q, slot, imposed)).toBe(true)
-      }
-    }
-  })
-
-  it('recusa posição fora da lista e acidente errado', () => {
-    const q = generateQuestion({
-      module: 'markNote:treble',
-      note: noteCfg({ accidentalMode: 'note' }),
-      rng: seeded(5),
-    })
-    const wrongSlot = q.validSlots![0] + 1
-    expect(checkSlot(q, wrongSlot, q.note!.alter)).toBe(false)
-    const wrongAlter = q.note!.alter === 1 ? 0 : 1
-    expect(checkSlot(q, q.validSlots![0], wrongAlter)).toBe(false)
-  })
-
-  it('no sistema de piano aceita posições nas duas pautas', () => {
-    // com as duas pautas na tela, a mesma letra aparece em ambas — as duas valem
-    const seen = new Set<number>()
-    for (const seed of SEEDS) {
-      const q = generateQuestion({ module: 'markNote:piano', note: noteCfg(), rng: seeded(seed) })
-      seen.add(q.validSlots!.length)
-      expect(q.staves).toEqual(['bass', 'treble'])
-    }
-    expect(Math.max(...seen)).toBeGreaterThan(2)
-  })
-})
-
 describe('conjuntos de clave', () => {
   it('o sistema de piano desenha as duas pautas e a nota cai numa delas', () => {
     const used = new Set<string>()
@@ -274,6 +210,148 @@ describe('conjuntos de clave', () => {
       )
     }
     expect([...used].sort()).toEqual(['alto', 'tenor'])
+  })
+})
+
+describe('readInterval', () => {
+  const ALL_MODES = ['none', 'note', 'key'] as const
+
+  it('põe as duas notas na faixa da pauta sorteada', () => {
+    for (const module of INTERVAL_MODULES) {
+      for (const seed of SEEDS) {
+        const cfg = noteCfg({ ledgerBelow: 0, ledgerAbove: 0 })
+        const q = generateQuestion({ module, note: cfg, interval: intervalCfg(), rng: seeded(seed) })
+        const { lo, hi } = rangeFor(q.clef, cfg)
+        for (const note of q.notes!) {
+          expect(diatonic(note)).toBeGreaterThanOrEqual(lo)
+          expect(diatonic(note)).toBeLessThanOrEqual(hi)
+        }
+      }
+    }
+  })
+
+  it('o intervalo da questão é o das notas, e sempre uma alternativa da tela', () => {
+    for (const accidentalMode of ALL_MODES) {
+      for (const seed of SEEDS) {
+        const q = generateQuestion({
+          module: 'readInterval:treble',
+          note: noteCfg({ accidentalMode, keyMax: 7 }),
+          interval: intervalCfg({ ask: 'quality' }),
+          rng: seeded(seed),
+        })
+        const [a, b] = q.notes!
+        expect(intervalBetween(a, b)).toEqual(q.interval)
+        expect(isIntervalChoice(q.interval!)).toBe(true)
+      }
+    }
+  })
+
+  it('sorteia as sete distâncias, subindo e descendo', () => {
+    const numbers = new Set<number>()
+    const directions = new Set<string>()
+    for (let seed = 1; seed <= 200; seed++) {
+      const q = generateQuestion({
+        module: 'readInterval:bass',
+        note: noteCfg(),
+        interval: intervalCfg({ style: 'melodic' }),
+        rng: seeded(seed),
+      })
+      numbers.add(q.interval!.number)
+      const [first, second] = q.notes!
+      directions.add(diatonic(second) > diatonic(first) ? 'up' : 'down')
+    }
+    expect([...numbers].sort()).toEqual([...INTERVAL_NUMBERS])
+    expect([...directions].sort()).toEqual(['down', 'up'])
+  })
+
+  it('com armadura as duas notas são alteradas pela armadura', () => {
+    for (const seed of SEEDS) {
+      const q = generateQuestion({
+        module: 'readInterval:piano',
+        note: noteCfg({ accidentalMode: 'key' }),
+        interval: intervalCfg(),
+        rng: seeded(seed),
+      })
+      expect(q.keySig).toBeDefined()
+      for (const note of q.notes!) expect(note.alter).toBe(alterInKey(note.step, q.keySig!))
+    }
+  })
+
+  it('com acidentes na nota, eles aparecem sem sair das alternativas', () => {
+    const alters = new Set<number>()
+    for (const seed of SEEDS) {
+      const q = generateQuestion({
+        module: 'readInterval:treble',
+        note: noteCfg({ accidentalMode: 'note' }),
+        interval: intervalCfg(),
+        rng: seeded(seed),
+      })
+      expect(q.keySig).toBeUndefined()
+      for (const note of q.notes!) alters.add(note.alter)
+    }
+    expect([...alters].sort()).toEqual([-1, 0, 1])
+  })
+
+  it('segue o tipo configurado e sorteia os dois em "both"', () => {
+    const seen = new Set<boolean>()
+    for (const seed of SEEDS) {
+      const gen = (style: IntervalConfig['style']) =>
+        generateQuestion({
+          module: 'readInterval:treble',
+          note: noteCfg(),
+          interval: intervalCfg({ style }),
+          rng: seeded(seed),
+        })
+      expect(gen('melodic').harmonic).toBe(false)
+      expect(gen('harmonic').harmonic).toBe(true)
+      seen.add(gen('both').harmonic!)
+    }
+    expect(seen.size).toBe(2)
+  })
+
+  it('no acorde as notas vêm do grave ao agudo', () => {
+    for (const seed of SEEDS) {
+      const q = generateQuestion({
+        module: 'readInterval:cello',
+        note: noteCfg(),
+        interval: intervalCfg({ style: 'harmonic' }),
+        rng: seeded(seed),
+      })
+      expect(diatonic(q.notes![0])).toBeLessThan(diatonic(q.notes![1]))
+    }
+  })
+
+  it('no modo "number" vale só o número; no "quality" a qualidade também', () => {
+    const base = generateQuestion({
+      module: 'readInterval:treble',
+      note: noteCfg(),
+      interval: intervalCfg(),
+      rng: seeded(4),
+    })
+    const byNumber = { ...base, interval: { number: 5, quality: 'P' } as const, intervalAsk: 'number' as const }
+    expect(checkInterval(byNumber, { number: 5 })).toBe(true)
+    expect(checkInterval(byNumber, { number: 4 })).toBe(false)
+
+    const byQuality = { ...byNumber, interval: { number: 4, quality: 'A' } as const, intervalAsk: 'quality' as const }
+    expect(checkInterval(byQuality, { number: 4, quality: 'A' })).toBe(true)
+    expect(checkInterval(byQuality, { number: 4, quality: 'P' })).toBe(false)
+    // mesmo som, outra grafia: o trítono escrito como 5ª diminuta não vale
+    expect(checkInterval(byQuality, { number: 5, quality: 'd' })).toBe(false)
+    expect(checkInterval(byQuality, { number: 4 })).toBe(false)
+  })
+
+  it('a tela sempre oferece a resposta certa', () => {
+    for (const ask of ['number', 'quality'] as const) {
+      for (const seed of SEEDS) {
+        const q = generateQuestion({
+          module: 'readInterval:viola',
+          note: noteCfg({ accidentalMode: 'note' }),
+          interval: intervalCfg({ ask }),
+          rng: seeded(seed),
+        })
+        expect(intervalChoices(ask).filter((c) => checkInterval(q, c))).toHaveLength(1)
+      }
+    }
   })
 })
 
@@ -330,8 +408,9 @@ describe('readKey', () => {
 
 describe('helpers de módulo', () => {
   it('deriva tarefa e conjunto do id', () => {
-    expect(taskOf('markNote:piano')).toBe('markNote')
+    expect(taskOf('readNote:piano')).toBe('readNote')
     expect(taskOf('readKey')).toBe('readKey')
+    expect(taskOf('readInterval:c')).toBe('readInterval')
     expect(isNoteModule('readKey')).toBe(false)
   })
 })

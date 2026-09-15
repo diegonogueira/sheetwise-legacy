@@ -4,7 +4,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { MODULES, type Module } from '../core/module'
 import { DEFAULT_C_CLEF_LINES, type CClefLine } from '../core/clefSet'
 import type { ClefId, LedgerCount } from '../core/clef'
-import type { AccidentalMode, KeyAsk } from '../core/exercise'
+import type { AccidentalMode, IntervalAsk, IntervalStyle, KeyAsk } from '../core/exercise'
 import type { Naming } from '../core/pitch'
 
 /** Configs que cada módulo lembra separadamente. */
@@ -17,8 +17,10 @@ export interface ModuleConfig {
   accidentalMode: AccidentalMode
   /** no modo `key`: máximo de acidentes da armadura */
   keyMax: number
-  /** escreve a letra de cada posição na pauta (ajuda de leitura no "Marcar notas") */
-  slotHints: boolean
+  /** intervalos: pergunta só o número ou também a qualidade */
+  intervalAsk: IntervalAsk
+  /** intervalos: melódico, harmônico ou os dois */
+  intervalStyle: IntervalStyle
 }
 
 const DEFAULT_MODULE_CONFIG: ModuleConfig = {
@@ -26,7 +28,8 @@ const DEFAULT_MODULE_CONFIG: ModuleConfig = {
   ledgerAbove: 3,
   accidentalMode: 'key',
   keyMax: 4,
-  slotHints: false,
+  intervalAsk: 'number',
+  intervalStyle: 'both',
 }
 
 /** Replica uma config-semente para todos os módulos (estado inicial / migração). */
@@ -69,7 +72,8 @@ interface SettingsState {
   setLedger: (module: Module, side: 'below' | 'above', v: LedgerCount) => void
   setAccidentalMode: (module: Module, v: AccidentalMode) => void
   setKeyMax: (module: Module, v: number) => void
-  setSlotHints: (module: Module, v: boolean) => void
+  setIntervalAsk: (module: Module, v: IntervalAsk) => void
+  setIntervalStyle: (module: Module, v: IntervalStyle) => void
   toggleCClefLine: (line: CClefLine) => void
   setKeyAsk: (v: KeyAsk) => void
   setKeyMaxAccidentals: (v: number) => void
@@ -102,8 +106,10 @@ export const useSettings = create<SettingsState>()(
         set((s) => ({ modules: patchModule(s.modules, module, { accidentalMode }) })),
       setKeyMax: (module, keyMax) =>
         set((s) => ({ modules: patchModule(s.modules, module, { keyMax }) })),
-      setSlotHints: (module, slotHints) =>
-        set((s) => ({ modules: patchModule(s.modules, module, { slotHints }) })),
+      setIntervalAsk: (module, intervalAsk) =>
+        set((s) => ({ modules: patchModule(s.modules, module, { intervalAsk }) })),
+      setIntervalStyle: (module, intervalStyle) =>
+        set((s) => ({ modules: patchModule(s.modules, module, { intervalStyle }) })),
       toggleCClefLine: (line) => set((s) => ({ cClefLines: toggleKeepingOne(s.cClefLines, line) })),
       setKeyAsk: (keyAsk) => set({ keyAsk }),
       setKeyMaxAccidentals: (keyMaxAccidentals) => set({ keyMaxAccidentals }),
@@ -111,28 +117,32 @@ export const useSettings = create<SettingsState>()(
     }),
     {
       name: 'sheetwise-settings',
-      version: 3,
+      version: 4,
       /**
-       * Migrações de PADRÃO (o backfill da leitura só preenche campo ausente, então mudar
-       * um default não alcança quem já abriu o app):
+       * Migrações (o backfill da leitura só preenche campo ausente, então mudar um default
+       * não alcança quem já abriu o app, e um campo removido ficaria salvo para sempre):
        *
        * - v2 ligou os acidentes em todos os módulos.
        * - v3 troca o booleano `accidentals` pelo modo: quem os tinha ligados passa a ler
        *   com ARMADURA (o acidente deixa de ser copiado da nota e passa a ser deduzido),
        *   quem os tinha desligados continua só com naturais.
+       * - v4 remove o "Marcar notas": somem os módulos `markNote:*` e o campo `slotHints`.
+       *
+       * Cada módulo é reconstruído só com os campos que `ModuleConfig` ainda conhece, então
+       * os restos de versões antigas (`accidentals`, `slotHints`) não sobrevivem.
        */
       migrate: (persisted: unknown, version: number) => {
         const state = (persisted ?? {}) as Partial<SettingsState>
-        if (version >= 3) return state
-        const stored = state.modules as Record<Module, Partial<ModuleConfig> & { accidentals?: boolean }>
+        if (version >= 4) return state
+        const stored = (state.modules ?? {}) as Record<string, Record<string, unknown> | undefined>
         const modules = modulesFrom(DEFAULT_MODULE_CONFIG)
         for (const m of MODULES) {
-          const old = stored?.[m]
-          const hadAccidentals = version >= 2 ? (old?.accidentals ?? true) : true
-          modules[m] = {
-            ...DEFAULT_MODULE_CONFIG,
-            ...old,
-            accidentalMode: hadAccidentals ? 'key' : 'none',
+          const old = stored[m] ?? {}
+          const known = Object.entries(old).filter(([field]) => field in DEFAULT_MODULE_CONFIG)
+          modules[m] = { ...DEFAULT_MODULE_CONFIG, ...Object.fromEntries(known) }
+          if (version < 3) {
+            const hadAccidentals = version >= 2 ? (old.accidentals ?? true) : true
+            modules[m].accidentalMode = hadAccidentals ? 'key' : 'none'
           }
         }
         return { ...state, modules }

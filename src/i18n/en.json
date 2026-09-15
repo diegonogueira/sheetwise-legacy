@@ -11,7 +11,7 @@
   "nav": {
     "group": {
       "readNote": "Read notes",
-      "markNote": "Mark notes",
+      "readInterval": "Intervals",
       "readKey": "Key signatures"
     },
     "item": {
@@ -42,11 +42,10 @@
       "correct": "Correct! It's {{note}}.",
       "wrong": "It was {{note}} — you picked {{chosen}}."
     },
-    "markNote": {
-      "prompt": "Mark <note>{{note}}</note> on the staff.",
-      "hint": "Click the right line or space.",
-      "correct": "Correct! {{note}} goes there.",
-      "wrong": "That's {{chosen}}. {{note}} is where it's marked."
+    "readInterval": {
+      "prompt": "Which interval is this?",
+      "correct": "Correct — {{interval}} ({{notes}}).",
+      "wrong": "Answer: {{interval}} ({{notes}}) — you picked {{chosen}}."
     },
     "readKey": {
       "promptMajor": "Which major key has this signature?",
@@ -60,13 +59,47 @@
       "minor": "{{tonic}} minor"
     }
   },
+  "interval": {
+    "name": {
+      "2": "second",
+      "3": "third",
+      "4": "fourth",
+      "5": "fifth",
+      "6": "sixth",
+      "7": "seventh",
+      "8": "octave"
+    },
+    "short": {
+      "2": "2nd",
+      "3": "3rd",
+      "4": "4th",
+      "5": "5th",
+      "6": "6th",
+      "7": "7th",
+      "8": "8ve"
+    },
+    "quality": {
+      "d": "diminished",
+      "m": "minor",
+      "M": "major",
+      "P": "perfect",
+      "A": "augmented"
+    },
+    "qualityShort": {
+      "d": "d",
+      "m": "m",
+      "M": "M",
+      "P": "P",
+      "A": "A"
+    },
+    "full": "{{quality}} {{name}}",
+    "fullShort": "{{quality}}{{number}}"
+  },
   "settings": {
     "title": "Settings",
     "aria": {
       "close": "Close"
     },
-    "yes": "Yes",
-    "no": "No",
     "naming": "Note names",
     "namingLetters": "C D E",
     "namingSolfege": "Do Re Mi",
@@ -92,7 +125,15 @@
     "keyMax": "Up to how many accidentals",
     "keyClefs": "Clefs for the signature",
     "keyHelp": "A signature fits both a major key and its relative minor, so the prompt always says which one it wants.",
-    "slotHints": "Label the staff positions"
+    "intervalSection": "Intervals",
+    "intervalAsk": "Answer with",
+    "intervalAskNumber": "Number",
+    "intervalAskQuality": "With quality",
+    "intervalStyle": "Type",
+    "intervalMelodic": "Melodic",
+    "intervalHarmonic": "Harmonic",
+    "intervalBoth": "Both",
+    "intervalHelp": "Melodic: one note after the other; harmonic: both at once. The number (3rd) is read by counting lines and spaces; the quality (minor or major 3rd) depends on the accidentals — with a key signature, the signature decides."
   },
   "line": {
     "1": "1st",

@@ -1,19 +1,11 @@
 import { useLayoutEffect, useRef } from 'react'
 import { Accidental, Formatter, Renderer, Stave, StaveConnector, StaveNote, Voice } from 'vexflow'
-import {
-  CLEF,
-  ledgerLinesFor,
-  slotsInRange,
-  staffRange,
-  yForDiatonic,
-  type ClefId,
-  type LedgerCount,
-} from '../../core/clef'
-import { spelledAt, stepLabel, toVexKey, type Alter, type Naming } from '../../core/pitch'
+import { CLEF, staffRange, yForDiatonic, type ClefId, type LedgerCount } from '../../core/clef'
+import { spelledAt, toVexKey, type Alter } from '../../core/pitch'
 import { toVexKeySignature, type KeySignature } from '../../core/keys'
 
 /** Uma nota desenhada na pauta, com o papel dela no exercício. */
-export type MarkVariant = 'accent' | 'selected' | 'correct' | 'wrong' | 'ghost'
+export type MarkVariant = 'accent' | 'correct'
 
 export interface Mark {
   /** posição vertical (índice diatônico) */
@@ -26,28 +18,16 @@ export interface Mark {
 
 const VARIANT_COLOR: Record<MarkVariant, string> = {
   accent: 'var(--color-accent)',
-  selected: 'var(--color-accent)',
   correct: 'var(--color-correct)',
-  wrong: 'var(--color-wrong)',
-  ghost: 'var(--color-faint)',
 }
 
-/** Espaçamento entre linhas. O padrão do VexFlow é 10; nas pautas em que se CLICA a pauta é
- *  desenhada maior, senão cada posição vira um alvo de 5px — inclicável no celular. Toda a
- *  geometria lê o espaçamento do próprio `Stave`, então basta mudar aqui. */
+/** Espaçamento entre linhas (o padrão do VexFlow). Toda a geometria lê o espaçamento do
+ *  próprio `Stave`, então basta mudar aqui. */
 const SPACING = 10
-const SPACING_INTERACTIVE = 14
 const STAVE_GAP = 80 // distância entre as duas pautas do sistema de piano
 /** Folga à esquerda. O sistema de piano precisa de mais: a chave é desenhada FORA da pauta. */
 const PAD_X = 10
 const PAD_X_GRAND = 26
-/**
- * Coluna reservada à esquerda para as letras de ajuda. As posições ficam a meio espaço
- * (5px) umas das outras — perto demais para empilhar texto —, então as letras alternam
- * entre duas colunas, o que dá um espaço inteiro de folga vertical a cada uma.
- */
-const HINT_GUTTER = 24
-const HINT_COLUMN = 11
 /** Y em que o VexFlow põe a 1ª linha de uma pauta criada em y=0 (folga p/ texto acima). */
 const STAVE_TOP_OFFSET = 40
 /** Quanto a clave passa da pauta (a de Sol é o glifo mais alto) — entra no enquadramento. */
@@ -59,9 +39,6 @@ const CLEF_OVERHANG = 20
  */
 const NOTE_MARGIN_SPACES = 2
 const noteMargin = (spacing: number) => NOTE_MARGIN_SPACES * spacing
-/** Largura da linha suplementar de pré-visualização, em espaços de pauta (a do VexFlow
- *  passa um pouco de cada lado da cabeça da nota). */
-const LEDGER_PREVIEW_SPACES = 2.4
 
 interface StaffProps {
   /** claves desenhadas, do grave ao agudo (uma só, ou as duas do sistema de piano) */
@@ -71,10 +48,11 @@ interface StaffProps {
   /** armadura desenhada em todas as pautas (módulo de tonalidade) */
   keySig?: KeySignature
   marks?: Mark[]
-  /** liga as posições clicáveis; recebe o índice diatônico e a clave da pauta clicada */
-  onSelect?: (slot: number, clef: ClefId) => void
-  /** escreve a letra de cada posição clicável (ajuda de leitura) */
-  hints?: Naming | null
+  /**
+   * desenha as marcas de cada pauta como UM acorde (intervalo harmônico) em vez de uma
+   * depois da outra. O acorde tem uma cor só: a da primeira marca
+   */
+  chord?: boolean
   width?: number
 }
 
@@ -95,13 +73,11 @@ function canvasHeight(
 }
 
 /**
- * A pauta: desenha com VexFlow e, quando `onSelect` é dado, sobrepõe um alvo de clique por
- * posição diatônica.
+ * A pauta: desenha com VexFlow e recorta o resultado na faixa que o módulo usa.
  *
- * As coordenadas dos alvos NÃO são estimadas: saem de `yForDiatonic` (núcleo, testado)
- * alimentado com o Y e o espaçamento que o próprio VexFlow reporta (`getYForLine` /
- * `getSpacingBetweenLines`). Assim o desenho e o hit-test nunca divergem, mesmo que o
- * VexFlow mude o espaçamento padrão.
+ * O recorte NÃO é estimado: sai de `yForDiatonic` (núcleo, testado) alimentado com o Y e o
+ * espaçamento que o próprio VexFlow reporta (`getYForLine` / `getSpacingBetweenLines`), então
+ * acompanha o desenho mesmo que o VexFlow mude o espaçamento padrão.
  */
 export function Staff({
   staves,
@@ -109,14 +85,10 @@ export function Staff({
   ledgerAbove,
   keySig,
   marks = [],
-  onSelect,
-  hints = null,
+  chord = false,
   width = 320,
 }: StaffProps) {
   const ref = useRef<HTMLDivElement>(null)
-  // guarda o callback num ref: mudar o handler não deve forçar um redesenho do VexFlow
-  const selectRef = useRef(onSelect)
-  selectRef.current = onSelect
 
   // assinatura estável: só redesenha quando o CONTEÚDO muda, não a identidade dos arrays
   const sig = [
@@ -125,8 +97,7 @@ export function Staff({
     ledgerAbove,
     keySig?.fifths ?? 'none',
     marks.map((m) => `${m.slot}:${m.alter}:${m.variant}:${m.clef ?? ''}`).join('|'),
-    onSelect ? 'live' : 'static',
-    hints ?? 'nohints',
+    chord ? 'chord' : 'seq',
     width,
   ].join('#')
 
@@ -135,20 +106,19 @@ export function Staff({
     if (!el) return
     el.innerHTML = ''
 
-    // pedido ao VexFlow; a geometria abaixo relê o valor efetivo de cada `Stave`
-    const requestedSpacing = selectRef.current ? SPACING_INTERACTIVE : SPACING
-    const height = canvasHeight(staves, ledgerBelow, ledgerAbove, requestedSpacing)
+    // `SPACING` é o pedido ao VexFlow; a geometria abaixo relê o valor efetivo de cada `Stave`
+    const height = canvasHeight(staves, ledgerBelow, ledgerAbove, SPACING)
     const renderer = new Renderer(el, Renderer.Backends.SVG)
     renderer.resize(width, height)
     const ctx = renderer.getContext()
 
     // as pautas vêm do grave ao agudo, mas na tela a aguda fica em cima
     const drawn = [...staves].reverse()
-    const padX = (staves.length > 1 ? PAD_X_GRAND : PAD_X) + (hints ? HINT_GUTTER : 0)
+    const padX = staves.length > 1 ? PAD_X_GRAND : PAD_X
     const staveWidth = width - padX - PAD_X
     const built = drawn.map((clefId, i) => {
-      const stave = new Stave(padX, i * (4 * requestedSpacing + STAVE_GAP), staveWidth, {
-        spacing_between_lines_px: requestedSpacing,
+      const stave = new Stave(padX, i * (4 * SPACING + STAVE_GAP), staveWidth, {
+        spacing_between_lines_px: SPACING,
       })
       stave.addClef(CLEF[clefId].vex)
       if (keySig) stave.addKeySignature(toVexKeySignature(keySig))
@@ -173,19 +143,24 @@ export function Staff({
     }
 
     // Todas as marcas de uma mesma pauta são formatadas JUNTAS: assim o VexFlow as espaça
-    // na horizontal em vez de empilhá-las no mesmo x (o caso de revelar várias posições
-    // válidas como fantasmas depois de um erro). Depois de formatar, o conjunto é deslocado
+    // na horizontal em vez de empilhá-las no mesmo x (as duas notas de um intervalo
+    // melódico). Depois de formatar, o conjunto é deslocado
     // para o centro da pauta — o formatter alinha à esquerda, o que deixaria a nota colada
     // na clave, com um vazio enorme à direita.
     for (const target of built) {
       const { clefId, stave } = target
       const mine = marks.filter((m) => staveFor(m) === target)
       if (!mine.length) continue
-      const notes = mine.map((mark) => {
-        const { key, accidental } = toVexKey(spelledAt(mark.slot, mark.alter))
-        const note = new StaveNote({ keys: [key], duration: 'w', clef: CLEF[clefId].vex })
-        if (accidental) note.addModifier(new Accidental(accidental), 0)
-        const color = VARIANT_COLOR[mark.variant]
+      // um grupo vira uma StaveNote: uma marca só, ou todas juntas no acorde (do grave ao
+      // agudo — o índice do acidente é o da tecla, e o VexFlow desloca a cabeça da 2ª sozinho)
+      const groups = chord ? [[...mine].sort((a, b) => a.slot - b.slot)] : mine.map((m) => [m])
+      const notes = groups.map((group) => {
+        const keys = group.map((mark) => toVexKey(spelledAt(mark.slot, mark.alter)))
+        const note = new StaveNote({ keys: keys.map((k) => k.key), duration: 'w', clef: CLEF[clefId].vex })
+        keys.forEach(({ accidental }, i) => {
+          if (accidental) note.addModifier(new Accidental(accidental), i)
+        })
+        const color = VARIANT_COLOR[group[0].variant]
         note.setStyle({ fillStyle: color, strokeStyle: color })
         return note
       })
@@ -246,78 +221,6 @@ export function Staff({
       // o VexFlow escreve a altura original num style inline, que vence o atributo — sem
       // sobrescrevê-lo o conteúdo recortado ficaria "letterboxed" dentro da tela folgada
       svg.style.height = `${viewHeight}px`
-    }
-
-    // alvos de clique: um por posição diatônica de cada pauta
-    if (selectRef.current && svg) {
-      {
-        const layer = document.createElementNS('http://www.w3.org/2000/svg', 'g')
-        for (const { clefId, stave } of built) {
-          const clef = CLEF[clefId]
-          const topLineY = stave.getYForLine(0)
-          const spacing = stave.getSpacingBetweenLines()
-          const x = stave.getNoteStartX()
-          const w = stave.getNoteEndX() - x
-          for (const slot of slotsInRange(staffRange(clef, ledgerBelow, ledgerAbove))) {
-            const y = yForDiatonic(slot, clef, topLineY, spacing)
-            const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
-            rect.setAttribute('class', 'staff-slot')
-            rect.setAttribute('x', String(x))
-            rect.setAttribute('y', String(y - spacing / 4))
-            rect.setAttribute('width', String(w))
-            rect.setAttribute('height', String(spacing / 2))
-            rect.setAttribute('data-slot', String(slot))
-            rect.setAttribute('data-clef', clefId)
-            layer.appendChild(rect)
-
-            // Pré-visualização das linhas suplementares. Fora da pauta o realce sozinho é
-            // uma barra no vazio: não dá para saber se aquilo é linha ou espaço, nem a que
-            // distância da pauta está. Desenhar as suplementares do caminho (como a partitura
-            // faria com a nota escrita ali) devolve a referência. Vem logo DEPOIS do alvo
-            // porque o CSS a acende com `.staff-slot:hover + .staff-ledger-preview`.
-            const ledgers = ledgerLinesFor(slot, clef)
-            if (ledgers.length) {
-              const preview = document.createElementNS('http://www.w3.org/2000/svg', 'g')
-              preview.setAttribute('class', 'staff-ledger-preview')
-              const half = (LEDGER_PREVIEW_SPACES * spacing) / 2
-              const cx = x + w / 2
-              for (const d of ledgers) {
-                const ly = yForDiatonic(d, clef, topLineY, spacing)
-                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-                line.setAttribute('x1', String(cx - half))
-                line.setAttribute('x2', String(cx + half))
-                line.setAttribute('y1', String(ly))
-                line.setAttribute('y2', String(ly))
-                // a linha da posição apontada vem realçada: é o que diz "aqui é LINHA",
-                // e não o espaço logo acima ou abaixo dela
-                if (d === slot) line.setAttribute('class', 'is-slot')
-                preview.appendChild(line)
-              }
-              layer.appendChild(preview)
-            }
-
-            if (hints) {
-              // a letra vai na coluna reservada à ESQUERDA da pauta (`HINT_GUTTER`): dentro
-              // dela cairia sobre a clave e sobre as próprias notas
-              const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
-              const column = (((slot % 2) + 2) % 2) * HINT_COLUMN
-              label.setAttribute('x', String(stave.getX() - 4 - column))
-              label.setAttribute('y', String(y + 3))
-              label.setAttribute('text-anchor', 'end')
-              label.setAttribute('class', 'staff-hint')
-              label.textContent = stepLabel(spelledAt(slot).step, hints)
-              layer.appendChild(label)
-            }
-          }
-        }
-        layer.addEventListener('click', (ev) => {
-          const el = ev.target as SVGElement
-          const slot = el.getAttribute?.('data-slot')
-          const clef = el.getAttribute?.('data-clef')
-          if (slot != null && clef != null) selectRef.current?.(Number(slot), clef as ClefId)
-        })
-        svg.appendChild(layer)
-      }
     }
 
     return () => {

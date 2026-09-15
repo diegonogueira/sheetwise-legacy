@@ -3,9 +3,6 @@ import {
   CLEF,
   CLEF_IDS,
   LEDGER_COUNTS,
-  diatonicForY,
-  ledgerLinesFor,
-  slotsInRange,
   staffRange,
   topLine,
   yForDiatonic,
@@ -68,46 +65,14 @@ describe('staffRange', () => {
   it('a faixa nunca fica vazia e cresce com as linhas', () => {
     for (const id of CLEF_IDS) {
       for (const n of LEDGER_COUNTS) {
-        const slots = slotsInRange(staffRange(CLEF[id], n, n))
-        expect(slots.length).toBe(11 + 4 * n)
+        const { lo, hi } = staffRange(CLEF[id], n, n)
+        expect(hi - lo + 1).toBe(11 + 4 * n)
       }
     }
   })
 })
 
-describe('ledgerLinesFor', () => {
-  const treble = CLEF.treble // linha de baixo Mi4 (30), linha de cima Fá5 (38)
-
-  it('o espaço colado na pauta não pede linha nenhuma', () => {
-    expect(ledgerLinesFor(29, treble)).toEqual([]) // Ré4, logo abaixo
-    expect(ledgerLinesFor(39, treble)).toEqual([]) // Sol5, logo acima
-  })
-
-  it('a nota SOBRE a suplementar pede aquela linha', () => {
-    expect(ledgerLinesFor(28, treble)).toEqual([28]) // Dó4
-    expect(ledgerLinesFor(40, treble)).toEqual([40]) // Lá5
-  })
-
-  it('a nota no espaço além da suplementar ainda se apoia nela', () => {
-    expect(ledgerLinesFor(27, treble)).toEqual([28]) // Si3
-    expect(ledgerLinesFor(41, treble)).toEqual([40]) // Si5
-  })
-
-  it('acumula as linhas do caminho todo, da pauta até a nota', () => {
-    expect(ledgerLinesFor(24, treble)).toEqual([28, 26, 24]) // Fá3
-    expect(ledgerLinesFor(44, treble)).toEqual([40, 42, 44]) // Mi6
-  })
-
-  it('nenhuma posição da pauta pede linha suplementar', () => {
-    for (const id of CLEF_IDS) {
-      for (const d of slotsInRange(staffRange(CLEF[id], 0, 0))) {
-        expect(ledgerLinesFor(d, CLEF[id])).toEqual([])
-      }
-    }
-  })
-})
-
-describe('geometria (desenho e hit-test)', () => {
+describe('geometria do desenho', () => {
   const spacing = 10
   const topY = 40
 
@@ -122,26 +87,5 @@ describe('geometria (desenho e hit-test)', () => {
     const a = yForDiatonic(30, clef, topY, spacing)
     const b = yForDiatonic(31, clef, topY, spacing)
     expect(a - b).toBe(spacing / 2)
-  })
-
-  it('diatonicForY é o inverso exato de yForDiatonic', () => {
-    for (const id of CLEF_IDS) {
-      const clef = CLEF[id]
-      for (const d of slotsInRange(staffRange(clef, 2, 2))) {
-        const y = yForDiatonic(d, clef, topY, spacing)
-        expect(diatonicForY(y, clef, topY, spacing)).toBe(d)
-      }
-    }
-  })
-
-  it('arredonda um clique fora do centro para a posição mais próxima', () => {
-    const clef = CLEF.treble
-    const d = 30
-    const y = yForDiatonic(d, clef, topY, spacing)
-    // um quarto de espaço para cada lado ainda cai na mesma posição
-    expect(diatonicForY(y + spacing / 4 - 0.5, clef, topY, spacing)).toBe(d)
-    expect(diatonicForY(y - spacing / 4 + 0.5, clef, topY, spacing)).toBe(d)
-    // meio espaço já é a posição vizinha
-    expect(diatonicForY(y + spacing / 2, clef, topY, spacing)).toBe(d - 1)
   })
 })

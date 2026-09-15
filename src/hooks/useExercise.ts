@@ -1,16 +1,18 @@
 import { useCallback, useState } from 'react'
 import {
+  checkInterval,
   checkKey,
   checkNoteName,
-  checkSlot,
   generateQuestion,
+  type IntervalConfig,
+  type IntervalGuess,
   type KeyConfig,
   type NoteConfig,
   type Question,
 } from '../core/exercise'
 import type { Module } from '../core/module'
-import { alterInKey, type KeySignature } from '../core/keys'
-import { midiOf, spelledAt, type Alter, type Spelled } from '../core/pitch'
+import type { KeySignature } from '../core/keys'
+import { midiOf, type Alter, type Spelled } from '../core/pitch'
 
 export type Status = 'idle' | 'correct' | 'wrong'
 
@@ -19,8 +21,9 @@ interface UseExerciseArgs {
   module: Module
   note: NoteConfig
   key: KeyConfig
-  /** chamado ao responder, com o(s) MIDI(s) a soar */
-  onReveal?: (midi: number | number[]) => void
+  interval: IntervalConfig
+  /** chamado ao responder, com o(s) MIDI(s) a soar — juntos, ou um depois do outro se `melodic` */
+  onReveal?: (midi: number | number[], melodic?: boolean) => void
 }
 
 export interface ExerciseApi {
@@ -29,39 +32,37 @@ export interface ExerciseApi {
   status: Status
   /** readNote: grafia escolhida nas alternativas */
   chosenNote: Spelled | null
-  /** markNote: posição clicada na pauta */
-  chosenSlot: number | null
-  /** markNote: acidente que valeu no clique (armado pelo aluno, ou imposto pela armadura) */
-  chosenAlter: Alter | null
-  /** markNote: acidente armado no seletor (aplicado ao clicar) */
+  /** readNote com armadura: acidente escolhido no seletor (as letras o acompanham) */
   alter: Alter
   /** readKey: armadura escolhida */
   chosenKey: KeySignature | null
+  /** readInterval: intervalo escolhido */
+  chosenInterval: IntervalGuess | null
   setAlter: (a: Alter) => void
   answerName: (note: Spelled) => void
-  answerSlot: (slot: number) => void
   answerKey: (sig: KeySignature) => void
+  answerInterval: (guess: IntervalGuess) => void
   next: () => void
 }
 
-export function useExercise({ module, note, key, onReveal }: UseExerciseArgs): ExerciseApi {
-  const [question, setQuestion] = useState<Question>(() => generateQuestion({ module, note, key }))
+export function useExercise({ module, note, key, interval, onReveal }: UseExerciseArgs): ExerciseApi {
+  const [question, setQuestion] = useState<Question>(() =>
+    generateQuestion({ module, note, key, interval }),
+  )
   const [status, setStatus] = useState<Status>('idle')
   const [chosenNote, setChosenNote] = useState<Spelled | null>(null)
-  const [chosenSlot, setChosenSlot] = useState<number | null>(null)
-  const [chosenAlter, setChosenAlter] = useState<Alter | null>(null)
   const [chosenKey, setChosenKey] = useState<KeySignature | null>(null)
+  const [chosenInterval, setChosenInterval] = useState<IntervalGuess | null>(null)
   const [alter, setAlter] = useState<Alter>(0)
 
   const newQuestion = useCallback(() => {
-    setQuestion(generateQuestion({ module, note, key }))
+    setQuestion(generateQuestion({ module, note, key, interval }))
     setStatus('idle')
     setChosenNote(null)
-    setChosenSlot(null)
-    setChosenAlter(null)
     setChosenKey(null)
+    setChosenInterval(null)
     setAlter(0)
-  }, [module, note, key])
+  }, [module, note, key, interval])
 
   const next = useCallback(() => newQuestion(), [newQuestion])
 
@@ -75,23 +76,6 @@ export function useExercise({ module, note, key, onReveal }: UseExerciseArgs): E
     [status, question, onReveal],
   )
 
-  const answerSlot = useCallback(
-    (slot: number) => {
-      if (status !== 'idle') return
-      // Com armadura o acidente não é armado pelo aluno: quem altera aquela posição é a
-      // armadura desenhada. É a mesma regra da partitura — o Fá da linha vira Fá♯ sozinho.
-      const effective: Alter = question.keySig
-        ? alterInKey(spelledAt(slot).step, question.keySig)
-        : alter
-      setChosenSlot(slot)
-      setChosenAlter(effective)
-      setStatus(checkSlot(question, slot, effective) ? 'correct' : 'wrong')
-      // soa o que o aluno DE FATO marcou, não a resposta — é o retorno honesto do clique
-      onReveal?.(midiOf(spelledAt(slot, effective)))
-    },
-    [status, question, alter, onReveal],
-  )
-
   const answerKey = useCallback(
     (sig: KeySignature) => {
       if (status !== 'idle') return
@@ -101,6 +85,17 @@ export function useExercise({ module, note, key, onReveal }: UseExerciseArgs): E
     [status, question],
   )
 
+  const answerInterval = useCallback(
+    (guess: IntervalGuess) => {
+      if (status !== 'idle') return
+      setChosenInterval(guess)
+      setStatus(checkInterval(question, guess) ? 'correct' : 'wrong')
+      // soa como foi desenhado: acorde junto, melodia na ordem escrita
+      if (question.notes) onReveal?.(question.notes.map(midiOf), !question.harmonic)
+    },
+    [status, question, onReveal],
+  )
+
   // Regenera ao trocar de módulo ou de configuração. As configs chegam memoizadas do App,
   // então a identidade só muda quando um valor muda de fato.
   //
@@ -108,9 +103,14 @@ export function useExercise({ module, note, key, onReveal }: UseExerciseArgs): E
   // muda), e não num efeito: num efeito sobraria um quadro com a questão do módulo antigo,
   // e cada tarefa lê campos que só a sua questão tem — a tonalidade lendo `keyChoices` de
   // uma questão de nota quebrava a tela, que só voltava com um F5.
-  const [source, setSource] = useState({ module, note, key })
-  if (source.module !== module || source.note !== note || source.key !== key) {
-    setSource({ module, note, key })
+  const [source, setSource] = useState({ module, note, key, interval })
+  if (
+    source.module !== module ||
+    source.note !== note ||
+    source.key !== key ||
+    source.interval !== interval
+  ) {
+    setSource({ module, note, key, interval })
     newQuestion()
   }
 
@@ -119,14 +119,13 @@ export function useExercise({ module, note, key, onReveal }: UseExerciseArgs): E
     question,
     status,
     chosenNote,
-    chosenSlot,
-    chosenAlter,
     chosenKey,
+    chosenInterval,
     alter,
     setAlter,
     answerName,
-    answerSlot,
     answerKey,
+    answerInterval,
     next,
   }
 }

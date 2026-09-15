@@ -30,13 +30,22 @@ export function loadInstrument(): Promise<void> {
   return loadingPromise
 }
 
-/** Toca uma ou mais alturas (MIDI). Chamado sempre a partir de um clique, então o
- *  AudioContext já está destravado. Silencioso em qualquer erro. */
-export async function playMidi(midi: number | number[]): Promise<void> {
+const DURATION = 1.6
+
+/** Toca uma ou mais alturas (MIDI): juntas, ou uma a cada `gap` segundos (melodia).
+ *  Chamado sempre a partir de um clique, então o AudioContext já está destravado.
+ *  Silencioso em qualquer erro. */
+export async function playMidi(midi: number | number[], gap = 0): Promise<void> {
   try {
-    getContext()
+    const context = getContext()
     if (!loaded) await loadInstrument()
-    for (const m of Array.isArray(midi) ? midi : [midi]) loaded?.start({ note: m, duration: 1.6 })
+    const notes = Array.isArray(midi) ? midi : [midi]
+    const start = context.currentTime
+    notes.forEach((m, i) => {
+      // na melodia cada nota se cala quando entra a próxima; senão viraria um acorde arrastado
+      const last = i === notes.length - 1
+      loaded?.start({ note: m, time: start + i * gap, duration: gap && !last ? gap : DURATION })
+    })
   } catch {
     /* silencioso */
   }

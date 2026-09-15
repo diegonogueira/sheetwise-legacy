@@ -3,8 +3,8 @@
 // Toda a geometria da pauta sai daí. Uma pauta tem 5 linhas; entre duas linhas há um
 // espaço, então cada linha vale 2 diatônicos e cada meia-distância (linha→espaço) vale 1.
 // Sabendo a nota da linha de baixo, qualquer posição vertical é aritmética simples — é o
-// que `yForDiatonic` e `diatonicForY` fazem, e é por isso que o hit-test do clique não
-// precisa de DOM nem do VexFlow para ser testado.
+// que `yForDiatonic` faz, e é por isso que o enquadramento da pauta não precisa de DOM nem
+// do VexFlow para ser testado.
 
 import { diatonic, type Spelled } from './pitch'
 
@@ -80,35 +80,10 @@ export function staffRange(
 }
 
 /**
- * As linhas suplementares que uma posição exige: todas as que ficam ENTRE a pauta e a nota,
- * incluindo a própria posição quando ela é uma linha. O espaço logo acima (ou abaixo) da
- * pauta não pede nenhuma; o espaço acima da 1ª suplementar já pede aquela linha, porque a
- * nota se apoia nela.
- */
-export function ledgerLinesFor(d: number, clef: Clef): number[] {
-  const out: number[] = []
-  for (let x = topLine(clef) + 2; x <= d; x += 2) out.push(x)
-  for (let x = clef.bottomLine - 2; x >= d; x -= 2) out.push(x)
-  return out
-}
-
-/** Todos os diatônicos da faixa, do grave ao agudo. */
-export function slotsInRange(range: { lo: number; hi: number }): number[] {
-  const out: number[] = []
-  for (let x = range.lo; x <= range.hi; x++) out.push(x)
-  return out
-}
-
-/**
  * Y de um diatônico. `topLineY` é o Y da linha SUPERIOR e `spacing` a distância entre
  * linhas — ambos vêm do VexFlow (`stave.getYForLine(0)` / `getSpacingBetweenLines()`),
  * nunca de um `10` chumbado aqui. Y cresce para BAIXO, nota mais aguda = Y menor.
  */
 export function yForDiatonic(d: number, clef: Clef, topLineY: number, spacing: number): number {
   return topLineY + ((topLine(clef) - d) * spacing) / 2
-}
-
-/** Inverso de `yForDiatonic`: qual posição da pauta foi clicada (arredonda para a mais perto). */
-export function diatonicForY(y: number, clef: Clef, topLineY: number, spacing: number): number {
-  return Math.round(topLine(clef) - ((y - topLineY) * 2) / spacing)
 }
