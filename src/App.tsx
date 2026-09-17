@@ -120,14 +120,13 @@ export default function App() {
             <AboutPage onBack={() => navigate(module)} />
           </main>
         ) : (
-        /* O exercício ocupa o centro da altura livre. O nome do módulo vive na TopBar (e
-            aqui só para leitores de tela): como <h1> visível ele empurrava o cartão para
-            baixo do meio — uma linha fina de texto no topo, e o olho lendo o vazio acima
-            dela como topo, não como metade do miolo. `justify-center-safe` centraliza SEM
-            cortar o começo quando a pauta cresce (faixa larga, sistema de piano). */
+        /* O exercício fica no topo, nunca centrado na vertical: ao responder o painel
+            cresce, e centrado a pauta subiria junto (wisekit, W-UI-09). O nome do módulo
+            vive na TopBar (e aqui só para leitores de tela); quando a pauta cresce (faixa
+            larga, sistema de piano), o `main` rola. */
         <main
           className={cx(
-            'mx-auto flex w-full min-w-0 max-w-3xl flex-1 flex-col justify-center-safe overflow-y-auto',
+            'mx-auto flex w-full min-w-0 max-w-3xl flex-1 flex-col overflow-y-auto',
             compact ? 'gap-2 px-2 py-1' : 'gap-4 px-4 py-5',
           )}
         >
