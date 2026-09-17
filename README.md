@@ -1,10 +1,12 @@
 # Sheetwise
 
 App de treino de **leitura na pauta** nas claves de **Sol**, **Fá** e **Dó**. Web-first
-(React + Vite), visual minimalista (estilo Notion / iRealPro). Irmão do
-[fretwise](https://github.com/diegonogueira/fretwise), que treina o braço do violão.
+(React + Vite) e Android (Capacitor). Irmão do [fretwise](https://github.com/diegonogueira/fretwise),
+[sightwise](https://github.com/diegonogueira/sightwise), [mathwise](https://github.com/diegonogueira/mathwise)
+e [keyswise](https://github.com/diegonogueira/keyswise): mesmo chassi, mesmas convenções
+([wisekit](https://github.com/diegonogueira/wisekit)).
 
-## Módulos
+## O que ele faz
 
 Cada módulo é uma tarefa numa configuração de claves, com URL própria e configurações
 lembradas separadamente.
@@ -38,19 +40,18 @@ instrumentos leem de verdade.
 tonalidade. Como uma armadura serve à tonalidade maior **e** à sua relativa menor, o
 enunciado sempre diz qual das duas está pedindo.
 
-## Configurações
+### Configurações
 
 Nomes das notas em **C D E** ou **Dó Ré Mi** (é configuração, não idioma), som ligado ou
 desligado, e por módulo: quantas **linhas suplementares** entram na faixa (de 0 a 5 de cada
 lado), de onde vêm os **acidentes** (nenhum · desenhados na nota · impostos pela armadura,
 que é o padrão) e até quantos a armadura pode ter. Em "Intervalos", ainda o tipo (melódico,
 harmônico ou os dois) e se a resposta é só o número ou também a qualidade. A tonalidade tem
-o modo perguntado
-(maior/menor/os dois), o limite de acidentes e em quais claves a armadura é desenhada.
+o modo perguntado (maior/menor/os dois), o limite de acidentes e em quais claves a armadura é desenhada.
 
 Interface em português e inglês.
 
-## Scripts
+## Rodando
 
 ```bash
 npm install      # instala dependências
@@ -58,32 +59,25 @@ npm run dev      # servidor de desenvolvimento (http://localhost:5173)
 npm run build    # type-check + build de produção (dist/)
 npm run preview  # serve o build de produção
 npm test         # testes do núcleo musical (Vitest)
+node scripts/shot.mjs   # confere a UI num Chromium de verdade (precisa do dev rodando)
 ```
 
-### Android
-
-O app roda no celular pelo Capacitor — o mesmo build web dentro de um WebView.
+Android — o mesmo build web dentro de um WebView. O Gradle 8.14 não aceita o JDK 26, daí o
+`JAVA_HOME` apontando para o 21; o APK sai em `android/app/build/outputs/apk/debug/`:
 
 ```bash
 JAVA_HOME=/usr/lib/jvm/java-21-openjdk npm run android:apk  # gera o APK de debug
 npm run android:install                                     # instala no aparelho via adb
-./scripts/gen-icons.sh                                      # regenera os ícones do launcher
+./scripts/gen-icons.sh                                      # ícones e splash a partir de src/assets/brand/*.svg
 ```
 
-O Gradle 8.14 não aceita JDK 26, daí o `JAVA_HOME` apontando para o 21. O APK sai em
-`android/app/build/outputs/apk/debug/app-debug.apk`.
-
-## Stack
-
-- **React 18 + TypeScript + Vite** — base web.
-- **Tailwind CSS v4** — design tokens minimalistas (`src/index.css`), sem arquivo de config.
-- **Zustand** — configurações persistidas em localStorage.
-- **VexFlow** — desenha a pauta, as claves, as armaduras e as notas.
-- **smplr** — áudio por soundfont (piano; carregado da CDN, então o som depende de rede).
-- **i18next** — português e inglês.
-- **Vitest** — testes do núcleo.
+Deploy no homelab: `./bin/deploy` (Docker + nginx, porta `SHEETWISE_PORT`, padrão 8081).
 
 ## Estrutura
+
+A pauta é desenhada com **VexFlow** e o som é um soundfont de piano pelo **smplr** (carregado da
+CDN, então o som depende de rede). O chassi — React, Tailwind v4, Zustand, i18next, Capacitor —
+é o da família (wisekit).
 
 ```
 src/
@@ -107,20 +101,7 @@ src/
   audio/         player de soundfont
 ```
 
-## Decisões de design
+## O que ainda não tem
 
-**A grafia é a lingua franca, não o MIDI.** Fá♯ e Sol♭ soam igual mas ocupam linhas
-diferentes — distinguir as duas é o que se está aprendendo, então uma resposta enarmônica
-nunca vale. O MIDI só existe na saída de áudio.
-
-**A posição vertical é um número.** O índice diatônico (`oitava × 7 + grau`) é o que se
-desenha; o acidente não move a nota. Isso deixa a geometria da pauta em aritmética simples e
-testável sem navegador.
-
-**Uma clave é a nota da sua linha de baixo.** Tudo o mais é consequência, então acrescentar
-a clave de Dó na 1ª ou na 5ª linha custou um número.
-
-## Próximos passos
-
-Identidade visual (ícone e favicons), empacotamento Android via Capacitor, histórico de
-progresso e o módulo inverso de tonalidade (dada a tonalidade, montar a armadura).
+Histórico de progresso, o módulo inverso de tonalidade (dada a tonalidade, montar a armadura) e
+som offline (samples dentro do app, como no sightwise).

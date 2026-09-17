@@ -1,0 +1,13 @@
+{
+  "extraKnownMarketplaces": {
+    "wisekit": {
+      "source": {
+        "source": "github",
+        "repo": "diegonogueira/wisekit"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "wise@wisekit": true
+  }
+}

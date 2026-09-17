@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
 #
-# CLI de tickets: atalhos pro fluxo de issues do GitHub.
+# CLI de tickets: atalhos pro fluxo de issues do GitHub (igual em todos os apps *wise; a fonte é
+# o wisekit, em templates/identicos/bin/ticket — não edite a cópia do app).
 # Roda onde você estiver: na main, em detached HEAD ou numa worktree sua. O
-# /start-ticket cria a branch `issue-N` na pasta atual quando precisa; worktree
+# /wise:start-ticket cria a branch `issue-N` na pasta atual quando precisa; worktree
 # dedicada é opcional (use se quiser rodar várias frentes em paralelo).
 #
 # Uso:
 #   ticket list [args...]   Lista os issues abertos (repassa flags pro `gh issue list`).
-#   ticket start <numero>   Abre uma sessão Claude pro issue (/start-ticket) NA PASTA ATUAL.
+#   ticket start <numero>   Abre uma sessão Claude pro issue (/wise:start-ticket) NA PASTA ATUAL.
 #   ticket <numero>         Atalho pra `ticket start <numero>`.
-#   ticket finish           Aprova o trabalho atual (/finish-ticket): roda os gates,
+#   ticket finish           Aprova o trabalho atual (/wise:finish-ticket): roda os gates,
 #                           mergeia na main por fast-forward, sobe e limpa a branch
 #                           (e a worktree, se for dedicada).
 #
@@ -19,22 +20,24 @@
 #   ./ticket finish                  # faz ff na main e limpa a branch
 #
 # Fluxo isolado (worktree dedicada, opcional — pra várias frentes em paralelo):
-#   git worktree add ../sheetwise-issue-12 -b issue-12 origin/main
-#   cd ../sheetwise-issue-12 && npm install
-#   ../sheetwise/ticket start 12
-#   ../sheetwise/ticket finish        # de dentro da worktree do ticket
+#   git worktree add ../<app>-issue-12 -b issue-12 origin/main
+#   cd ../<app>-issue-12 && npm install
+#   ../<app>/ticket start 12
+#   ../<app>/ticket finish           # de dentro da worktree do ticket
+#
+# Os comandos vêm do plugin `wise` (marketplace wisekit), ligado em .claude/settings.json.
 #
 set -euo pipefail
 
 usage() {
-  cat >&2 <<'EOF'
+  cat >&2 <<'USAGE'
 Uso:
   ticket list [args...]   Lista os issues abertos (repassa flags pro `gh issue list`).
-  ticket start <numero>   Abre uma sessão Claude pro issue (/start-ticket) na pasta atual.
+  ticket start <numero>   Abre uma sessão Claude pro issue (/wise:start-ticket) na pasta atual.
   ticket <numero>         Atalho pra `ticket start <numero>`.
-  ticket finish           Aprova o trabalho atual (/finish-ticket): gates + merge na main
+  ticket finish           Aprova o trabalho atual (/wise:finish-ticket): gates + merge na main
                           por fast-forward + push + limpa a branch (e a worktree, se dedicada).
-EOF
+USAGE
 }
 
 cmd="${1:-}"
@@ -57,13 +60,13 @@ case "$cmd" in
       echo "Uso: ticket start <numero-do-issue>" >&2
       exit 1
     fi
-    exec claude "/start-ticket $n"
+    exec claude "/wise:start-ticket $n"
     ;;
 
   finish)
-    # Não recebe número: o /finish-ticket descobre o issue pela branch atual.
+    # Não recebe número: o /wise:finish-ticket descobre o issue pela branch atual.
     # Roda na pasta atual, que deve estar na branch do ticket a finalizar.
-    exec claude "/finish-ticket"
+    exec claude "/wise:finish-ticket"
     ;;
 
   ""|-h|--help|help)

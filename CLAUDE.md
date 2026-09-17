@@ -1,206 +1,135 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Sheetwise é um app web-first (React + Vite) de **leitura na pauta**: nomear notas, reconhecer
+intervalos e identificar armaduras nas claves de Sol, Fá e Dó. Veja o `README.md` para o
+produto. As regras da família *wise (identidade, casca, modal de ajustes, estado, i18n, stack,
+Android, infra e fluxo de tickets) vêm do plugin `wise` (repo **wisekit**) e **não se repetem
+aqui** — este arquivo guarda só o que é do sheetwise.
 
-Sheetwise is a web-first (React + Vite) app for practicing **staff reading** — naming notes,
-placing them on the staff, and identifying key signatures, in the treble, bass and C clefs.
-See `README.md` for the product overview. This file covers the non-obvious architecture and
-conventions. It is a sibling of **fretwise** (guitar-neck trainer) and shares its chassis:
-URL routing, zustand settings store, Tailwind v4 `@theme` tokens, pure tested `src/core`.
-
-## Commands
+## Comandos
 
 ```bash
-npm run dev          # dev server at http://localhost:5173
-npm run build        # tsc --noEmit && vite build  (type-check is part of build)
-npm test             # vitest run (core musical logic only)
-npm run test:watch   # vitest watch
+npx vitest run src/core/clef.test.ts    # um arquivo
+npx vitest run -t "linha inferior"       # um teste pelo nome
 
-npx vitest run src/core/clef.test.ts    # single test file
-npx vitest run -t "linha inferior"       # single test by name
-
-npm run android:apk      # build + cap sync + gradle assembleDebug
-npm run android:install  # adb install -r … app-debug.apk
-./scripts/gen-icons.sh   # launcher icons from src/assets/brand/*.svg
+JAVA_HOME=/usr/lib/jvm/java-21-openjdk npm run android:apk
+node scripts/shot.mjs [url]   # fotos + erros de console num Chromium de verdade (dev rodando)
 ```
 
-`npm run build` fails on unused locals/parameters (strict TS with
-`noUnusedLocals`/`noUnusedParameters`). Type errors are caught at build time, not by a
-separate lint step — there is no ESLint config.
+`npm test` cobre o núcleo musical (grafia, claves, conjuntos de clave, armaduras, intervalos,
+geração e validação das questões) e as rotas.
 
-## Architecture
+## Invariantes
 
-**`src/core/` is the single source of truth and is pure (no React).** The staff renderer,
-the exercise engine and the audio all derive note identity from it. New training tools
-should be built as new tasks on top of `src/core`, not by duplicating note logic.
+- **A grafia é a língua franca, não o MIDI.** Uma nota é uma `Spelled` (`{ step, alter, octave }`)
+  e a posição vertical na pauta é o **diatônico** `octave * 7 + step` — o acidente não move a nota.
+  O MIDI só existe na saída de áudio (`midiOf`). Nenhuma checagem de resposta passa pelo MIDI:
+  `sameNote`/`checkNoteName` comparam grafia, então um enarmônico é sempre errado.
+- **Uma clave é o diatônico da sua linha de baixo** (`src/core/clef.ts`); toda a geometria é
+  aritmética a partir daí. `yForDiatonic` recebe `topLineY` e `spacing` lidos do `Stave` — **nunca
+  fixe os 10 px** entre linhas.
+- **Os módulos são derivados** (`tarefa × conjunto de claves`, `src/core/module.ts`): menu, URLs e
+  `Record<Module, …>` saem daí. Não existe lista de módulos para manter em dia.
+- **A armadura é ambígua** entre a maior e a relativa menor: `question.keyAsk` sempre diz qual modo
+  está sendo pedido, e toda alternativa é desse modo. Nunca "resolva" aceitando as duas.
+- **Com `accidentalMode: 'key'` o acidente vem da armadura**: o `alter` é `alterInKey(step, keySig)`
+  e a marca é desenhada com `alter: 0` — repetir o acidente ao lado da nota é notação errada e
+  entrega a resposta.
 
-### Spelling is the lingua franca (NOT MIDI)
+## Arquitetura
 
-This is the one thing that differs from fretwise, and getting it wrong breaks the whole app.
-Fretwise uses the MIDI number everywhere because on a fretboard only pitch matters. On a
-staff, **spelling** matters: F♯ and G♭ sound the same but sit on **different lines**, and
-telling them apart is exactly what the student is learning.
+`src/core/` é puro e é a fonte única da verdade: o desenho da pauta, o gerador de questões e o
+áudio derivam a identidade das notas dele.
 
-So a note is a `Spelled` (`{ step: 0..6, alter: -1|0|1, octave }`), and its **vertical
-position** on the staff is the **diatonic index** `octave * 7 + step` (C4 = 28, E4 = 30,
-G2 = 18) — the accidental does not move a note vertically. See `src/core/pitch.ts`.
+### Por que a grafia, e não o MIDI
 
-- The diatonic index is the analogue of fretwise's `Position`: it is what gets drawn.
-  `Mark.slot` is a diatonic index.
-- **MIDI is output only.** `midiOf(spelled)` exists to feed the audio player. Never route
-  an answer check through MIDI — `sameNote`/`checkNoteName` compare spelling, so an
-  enharmonic is always wrong.
+É a única coisa que muda em relação ao fretwise, e errar aqui quebra o app inteiro. No braço só
+importa a altura, então o fretwise usa o MIDI em toda parte. Na pauta importa a **grafia**: Fá♯ e
+Sol♭ soam igual mas ficam em **linhas diferentes**, e distinguir as duas é exatamente o que o aluno
+está aprendendo. O índice diatônico é o análogo da `Position` do fretwise: é o que se desenha, e
+`Mark.slot` é um índice diatônico.
 
-### A clef is just the diatonic of its bottom line
+### Claves e conjuntos de clave
 
-`src/core/clef.ts` defines each clef by one number: the diatonic index of the note on the
-**lowest staff line** (treble = E4, bass = G2, alto = F3, tenor = D3…). Every other piece of
-geometry is arithmetic from there: a line is 2 diatonics, a line→space step is 1.
+Cada clave é um número: o diatônico da nota da **linha de baixo** (Sol = E4, Fá = G2, Dó 3ª = F3,
+Dó 4ª = D3…). Uma linha são 2 diatônicos; linha → espaço, 1. Por isso a geometria é testada sem DOM.
 
-`yForDiatonic` takes `topLineY` and `spacing` as **parameters** rather than assuming
-VexFlow's defaults, and `Staff.tsx` feeds it `stave.getYForLine(0)` and
-`stave.getSpacingBetweenLines()`. That is why the crop can never drift from the drawing, and
-why the geometry is unit tested with no DOM. **Don't hardcode the 10px line spacing** — read
-it back from the `Stave`.
+`single` vs `grand` é uma distinção musical, não de desenho:
+- `grand` (piano) desenha **as duas** pautas de uma vez e a nota cai numa delas;
+- `single` (violoncelo, viola, clave de Dó) desenha **uma** pauta e **troca a clave a cada
+  questão** — é assim que esses instrumentos leem, trocando de clave no meio da peça.
 
-### Modules are derived, not enumerated
+Acrescentar um conjunto em `clefSet.ts` cria os módulos de nota e de intervalo sozinho e faz o
+TypeScript exigir as entradas novas em todo `Record<Module, …>`.
 
-`src/core/module.ts` builds the module list as `tarefa × conjunto-de-claves` with a template
-literal type (`readNote:piano`, `readInterval:cello`, plus the standalone `readKey`).
-Adding a clef set in `clefSet.ts` creates both note modules automatically and makes
-TypeScript demand the new entries wherever a `Record<Module, …>` is used. The menu
-(`Sidebar.tsx`) and the URLs (`lib/routes.ts`) are derived the same way, so **there is no list of 13 things to keep in sync.**
+### Como cada tarefa valida
 
-`single` vs `grand` layout is a real musical distinction, not a rendering detail:
-- `grand` (piano) draws **both** staves at once and the note lands on one of them.
-- `single` (cello, viola, the C clef) draws **one** staff and **re-draws the clef per
-  question** — that is how those instruments actually read, switching clef mid-piece.
+- **readNote** — sem oitava: a grafia (letra + acidente) precisa bater, em qualquer oitava. O aluno
+  escolhe entre as 7 letras (lembrar, não múltipla escolha — por isso não há `choices`). Se o
+  **acidente é perguntado** depende do `accidentalMode`: com armadura ele é o ponto da questão, então
+  o seletor ♭/♮/♯ aparece e as letras o seguem; sem armadura o acidente vem desenhado ao lado da
+  nota, e perguntá-lo só testaria cópia — as letras já o carregam (`C♯ D♯ E♯…`).
+- **readInterval** — duas notas numa pauta (no `grand`, na pauta desenhada), melódicas ou
+  harmônicas (`question.harmonic` → prop `chord` do `Staff`). O intervalo sai da **grafia**
+  (`src/core/interval.ts`): o número é a distância diatônica, a qualidade é o que os acidentes fazem
+  com ela, então Fá–Si (4ª aum.) e Fá–Dó♭ (5ª dim.) são respostas diferentes. `intervalAsk: 'number'`
+  confere só o número; `'quality'` confere os dois, contra as 13 `INTERVAL_CHOICES` (os intervalos de
+  uma escala maior). O gerador garante que a resposta é sempre uma delas: dentro de uma armadura por
+  construção, e no modo `note` só sorteia pares de acidentes que caem na lista — nada de 2ª aum. ou
+  4ª dim. sem botão. No modo `key`, a mesma regra de desenhar com `alter: 0` da readNote.
+- **readKey** — ver a invariante da armadura ambígua.
 
-### How each task validates
+### `accidentalMode`: de onde vem o acidente
 
-- **readNote** — octave-agnostic: the spelling (letter + accidental) must match, in any
-  octave. The student picks from all 7 letters — recall, not multiple choice, so there is no
-  `choices` field. Whether the **accidental is asked** depends on `accidentalMode` (below):
-  with a key signature it is the point of the question, so the ♭/♮/♯ selector is shown and
-  the letters follow it; without one the accidental is drawn next to the note, so asking for
-  it would only test copying and the letters carry it instead (`C♯ D♯ E♯…`).
-- **readInterval** — two notes on one staff (in `grand`, the drawn staff), melodic or
-  harmonic (`question.harmonic` → `Staff`'s `chord` prop). The interval comes from
-  **spelling** (`src/core/interval.ts`): the number is the diatonic distance, the quality is
-  what the accidentals do to it, so F–B (A4) and F–C♭ (d5) are different answers. `intervalAsk`
-  `number` checks only the number; `quality` checks both, against the 13 `INTERVAL_CHOICES`
-  (exactly the intervals of a major scale). The generator guarantees the answer is always one
-  of them: inside a key signature it is by construction, and in `note` mode it only draws alter
-  pairs that land in the list — so no A2/d4/doubly-augmented question with no button for it.
-  Same `alter: 0` drawing rule as readNote in `key` mode.
-- **readKey** — a key signature is **ambiguous** between the relative major and minor, so
-  `question.keyAsk` always says which mode is being asked and every choice is that mode.
-  Never "fix" this by accepting either answer.
+`none` (só naturais) · `note` (desenhado ao lado da cabeça da nota) · `key` (**o padrão**: armadura
+na clave e a nota desenhada *limpa*).
 
-### `accidentalMode`: where the accidental comes from
+### A pauta (`src/components/Staff/Staff.tsx`)
 
-`none` (only naturals) · `note` (drawn beside the notehead) · `key` (**the default**: a key
-signature at the clef, and the note is drawn *clean*).
+Desenha com VexFlow e depois faz duas coisas à mão:
 
-In `key` mode the note's `alter` is not random — it is `alterInKey(step, keySig)`, exactly
-what the signature imposes. So the mark is drawn with **`alter: 0`**: repeating the
-accidental next to the notehead is both wrong notation and the answer handed over.
+1. **Centraliza as notas.** O formatter alinha à esquerda, colando a nota na clave. O deslocamento
+   sai da caixa das notas (posição **mais largura**) e fica preso à área das notas, para as duas
+   notas de um intervalo melódico nunca passarem da barra. O deslocamento vai no **`TickContext`**,
+   nunca em `setXShift`: o `x_shift` de uma nota é do VexFlow, que o usa para abrir espaço para o
+   acidente — sobrescrevê-lo movia só a cabeça, e o acidente (que lê o X absoluto do tick context)
+   ficava estacionado ao lado da clave.
+2. **Recorta o canvas.** O VexFlow recebe um canvas generoso e o `viewBox` é estreitado para a faixa
+   vertical que o módulo usa de fato. Essa faixa sai da **configuração** (linhas suplementares), não
+   da nota desenhada, então a pauta não pula entre questões. O VexFlow escreve a altura original num
+   `style` inline, que vence o atributo `height` — é preciso definir `svgEl.style.height` também, senão
+   o conteúdo fica com tarjas. A margem em volta é medida em **espaços da pauta**, não em pixels: um
+   ♭ sobe um espaço e meio acima da cabeça, e uma margem fixa cortava o acidente da nota mais aguda.
 
-## State is split in two
+### Estado do sheetwise
 
-- **`useSettings`** (`src/store/settings.ts`, zustand + `persist`, key `sheetwise-settings`,
-  currently **version 4**): what the user chose. Adding a top-level field is safe. Adding a
-  `ModuleConfig` field is safe too — `useModuleConfig` backfills missing fields from
-  `DEFAULT_MODULE_CONFIG` on **read**, so persisted states never need a migration for a new
-  option. Renaming or removing a field **does** need a `version` bump plus a `migrate`.
-  So does *changing a default*: the backfill only fills what is **absent**, so a value
-  already written keeps winning (v2 exists for exactly that — it turned accidentals on
-  everywhere; v3 replaced the `accidentals` boolean with `accidentalMode`; v4 dropped the
-  removed "mark notes" task — its `markNote:*` modules and the `slotHints` field). Only migrate a
-  default when the intent is to override past choices.
-- **`useExercise`** (`src/hooks/useExercise.ts`): the current question and answer. Per
-  session, reset on every `next()` and on every module or config change. That reset happens
-  **during render** (React's "adjust state when a prop changes"), never in an effect: an
-  effect would leave one frame holding the previous module's question, and each task body
-  reads fields only its own question has — `ReadKeyBody` hitting a note question's missing
-  `keyChoices` blanked the screen until a reload.
+- `useSettings` (`sheetwise-settings`, **v4**): globais (`naming`, `audioEnabled`, linhas da clave
+  de Dó, configuração da tonalidade) e um `ModuleConfig` por módulo (linhas suplementares,
+  `accidentalMode`, `keyMax`, intervalo). Histórico das versões: v2 ligou os acidentes em todos os
+  módulos (mudança de padrão que precisava valer sobre o que já estava gravado); v3 trocou o
+  booleano `accidentals` por `accidentalMode`; v4 tirou a tarefa "marcar notas" (módulos
+  `markNote:*` e o campo `slotHints`).
+- O corpo de cada tarefa lê campos que só a questão dele tem: a regeneração **durante o render** é o
+  que evita o `ReadKeyBody` ler uma questão de nota sem `keyChoices` (tela branca até recarregar).
+- O último módulo aberto fica em `sheetwise-module`; `parseModule` descarta um id que deixou de
+  existir.
+- Os ajustes aparecem por predicados do core: `isNoteModule`, `isReadInterval`, `usesCClef`,
+  `module === 'readKey'`.
 
-Config objects passed to `useExercise` must be memoized in `App.tsx` (`useMemo`) — the hook
-regenerates the question whenever a config **reference** changes.
+### Áudio
 
-Language lives outside the store, in `localStorage['sheetwise-lang']`. So does the last
-opened module, `localStorage['sheetwise-module']` (`useRoute`): a module URL always wins, but
-a path with no module — `/`, which is how the Android app always starts, or a stale link —
-reopens the last one. `parseModule` drops a stored id that no longer exists.
+`src/audio/player.ts` toca a nota (e as duas do intervalo, com `MELODIC_GAP` entre elas no
+melódico) com um soundfont de piano pelo smplr. O soundfont vem da rede: sem internet o app funciona
+mudo.
 
-## Note names are a setting, not a language
+## Desvios do guia
 
-`naming: 'letters' | 'solfege'` decides between `C D E` and `Dó Ré Mi`. It is independent of
-the UI language, and the labels come from `noteLabel`/`stepLabel` in `src/core/pitch.ts` —
-**never from i18n**. i18n covers only UI chrome.
+Nenhum.
 
-## UI placement rules
+## Verificando UI
 
-Modules are chosen in the Sidebar; **all configuration lives in the Settings modal**, with
-sections gated by predicates (`isNoteModule`, `isReadInterval`, `usesCClef`,
-`module === 'readKey'`).
-Don't add settings to the exercise panel.
-
-## Styling
-
-Tailwind v4 through the Vite plugin — there is no `tailwind.config.*`. Design tokens
-(colors, radius) are `@theme` custom properties in `src/index.css`, exposed as utilities
-like `text-ink`, `bg-accent-soft`, `border-line`. There is only a light theme.
-
-## The Staff component
-
-`src/components/Staff/Staff.tsx` draws with VexFlow and then does two things by hand:
-
-1. **Centers the notes.** The formatter left-aligns, which would glue the note to the clef.
-   The shift is computed from the notes' bounding box (position **plus width**) and clamped
-   to the note area, so the two notes of a melodic interval never spill past the barline.
-   The shift is applied to the **`TickContext`**, never with `setXShift`: a note's `x_shift` belongs to
-   VexFlow, which uses it to open room for the accidental, and overwriting it moved only the
-   notehead — the accidental reads the absolute X (from the tick context) and stayed parked
-   next to the clef.
-2. **Crops the canvas.** VexFlow is given a generous canvas, then the `viewBox` is narrowed
-   to the vertical extent the module actually uses. That extent comes from the configured
-   **range**, not from the drawn note, so the staff does not jump between questions.
-   VexFlow writes the original height into an inline `style`, which beats the `height`
-   attribute — `svgEl.style.height` must be set too or the content ends up letterboxed.
-   The margin around that extent is measured in **staff spaces**, not pixels: a ♭ reaches
-   about a space and a half above the notehead, so a fixed margin clipped the accidental of
-   the highest note in the range.
-
-## Android (Capacitor)
-
-`npm run android:apk` needs **JDK 21** — the Gradle wrapper is 8.14 and does not accept the
-JDK 26 that is the system default here, so run it as
-`JAVA_HOME=/usr/lib/jvm/java-21-openjdk npm run android:apk`. The APK lands in
-`android/app/build/outputs/apk/debug/`.
-
-The web app is the whole app: Capacitor only wraps `dist/`, so `cap sync` copies the same
-build the browser gets. The single native touch is `src/native/statusBar.ts`, a no-op off
-device: the status bar is hidden in short landscape (the compact layout, so the staff owns
-the screen) and shown in portrait. Android 15+ draws edge-to-edge regardless, so `TopBar`
-and the sidebar drawer also pad themselves with `--safe-area-inset-*` (the variable comes
-from Capacitor, `env()` is the web fallback, both 0 in the browser).
-
-Launcher icons are generated, never hand-edited: `./scripts/gen-icons.sh` renders every
-mipmap from `src/assets/brand/icon.svg` (the tile, same art as the favicon) and
-`icon-fg.svg` (art only, in the 108-grid with the 66 safe zone the launcher crops to).
-
-## Verifying UI changes
-
-There are no component/E2E tests — only `src/core/*.test.ts` and `src/lib/routes.test.ts`
-(Vitest). To verify UI behavior, drive the dev server with a headless browser:
-`playwright-core` (devDep) launching the system Chromium at `/usr/bin/chromium`, navigate to
-`localhost:5173`, interact, screenshot. Stable selector: `.staff` (the `<svg>` inside it
-is the drawn staff).
-
-## Not yet built
-
-Web branding beyond the minimal `favicon.svg` (raster favicons, PWA icons — the Android
-launcher icons *are* generated, see above), a signed release build, progress statistics, and
-the reverse key-signature module (given a key, build the signature). The original
-implementation plan is at `~/.claude/plans/sleepy-roaming-starfish.md`.
+Não há teste de componente: `node scripts/shot.mjs [url]` (padrão
+`http://localhost:5173/read-note/treble`) abre o Chromium do sistema, fotografa retrato, paisagem e
+desktop e falha com erro no console. Seletor estável: `.staff` (o `<svg>` dentro dele é a pauta
+desenhada). Para conferir os outros módulos, passe a URL: `/read-note/piano` (sistema de duas
+pautas), `/read-interval/cello`, `/read-key`.
