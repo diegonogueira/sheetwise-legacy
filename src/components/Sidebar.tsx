@@ -1,4 +1,4 @@
-import { ArrowUpDown, KeySquare, Music2 } from 'lucide-react'
+import { ArrowUpDown, Info, KeySquare, Music2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { CLEF_SET_IDS } from '../core/clefSet'
 import { NOTE_TASKS, type Module, type Task } from '../core/module'
@@ -8,6 +8,9 @@ import { cx } from '../lib/cx'
 interface SidebarProps {
   module: Module
   onSelect: (m: Module) => void
+  /** a página "Sobre" está aberta (nenhum módulo fica marcado) */
+  about: boolean
+  onAbout: () => void
   /** drawer aberto (apenas mobile) */
   open: boolean
   onClose: () => void
@@ -55,7 +58,9 @@ function LangSwitcher() {
   )
 }
 
-function Nav({ module, onSelect }: { module: Module; onSelect: (m: Module) => void }) {
+type NavProps = Pick<SidebarProps, 'module' | 'onSelect' | 'about' | 'onAbout'>
+
+function Nav({ module, onSelect, about, onAbout }: NavProps) {
   const { t } = useTranslation()
   return (
     <nav className="flex flex-col gap-5">
@@ -68,7 +73,7 @@ function Nav({ module, onSelect }: { module: Module; onSelect: (m: Module) => vo
             </h2>
             <ul className="flex flex-col gap-0.5">
               {group.items.map((item) => {
-                const active = module === item.module
+                const active = !about && module === item.module
                 return (
                   <li key={item.module}>
                     <button
@@ -92,18 +97,32 @@ function Nav({ module, onSelect }: { module: Module; onSelect: (m: Module) => vo
           </div>
         )
       })}
-      <LangSwitcher />
+      <div className="flex flex-col gap-1">
+        <button
+          type="button"
+          onClick={onAbout}
+          aria-current={about ? 'page' : undefined}
+          className={cx(
+            'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors',
+            about ? 'bg-accent-soft font-medium text-accent' : 'text-muted hover:bg-line hover:text-ink',
+          )}
+        >
+          <Info size={16} className="shrink-0" />
+          {t('about.nav')}
+        </button>
+        <LangSwitcher />
+      </div>
     </nav>
   )
 }
 
-export function Sidebar({ module, onSelect, open, onClose }: SidebarProps) {
+export function Sidebar({ module, onSelect, about, onAbout, open, onClose }: SidebarProps) {
   return (
     <>
       {/* coluna fixa em telas largas (desktop) */}
       <aside className="hidden w-60 shrink-0 border-r border-line bg-surface lg:block">
         <div className="sticky top-[49px] p-3">
-          <Nav module={module} onSelect={onSelect} />
+          <Nav module={module} onSelect={onSelect} about={about} onAbout={onAbout} />
         </div>
       </aside>
 
@@ -123,6 +142,11 @@ export function Sidebar({ module, onSelect, open, onClose }: SidebarProps) {
               module={module}
               onSelect={(m) => {
                 onSelect(m)
+                onClose()
+              }}
+              about={about}
+              onAbout={() => {
+                onAbout()
                 onClose()
               }}
             />

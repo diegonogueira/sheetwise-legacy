@@ -48,3 +48,10 @@ export function moduleFromPath(pathname: string, fallback: Module = DEFAULT_MODU
 export function parseModule(id: string | null): Module | null {
   return MODULES.find((m) => m === id) ?? null
 }
+
+/** A página "Sobre": não é de módulo, e o módulo aberto continua o último. */
+export const ABOUT_PATH = '/about'
+
+export function isAboutPath(pathname: string): boolean {
+  return (pathname.replace(/\/+$/, '') || '/') === ABOUT_PATH
+}

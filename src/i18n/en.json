@@ -141,5 +141,55 @@
     "3": "3rd",
     "4": "4th",
     "5": "5th"
+  },
+  "about": {
+    "title": "About",
+    "nav": "About Sheetwise",
+    "tagline": "Notes, intervals and key signatures in treble, bass and C clefs, until reading becomes automatic.",
+    "whatTitle": "Reading the staff",
+    "what": "It means looking at a note and knowing what it is without counting lines — along with the accidental the key signature imposes, the distance to the next note and the key of the piece. It's the basis of all reading: if you are still counting lines, there's no attention left for rhythm, fingering or the music itself. And it only becomes automatic one way: many short repetitions with instant feedback.",
+    "helpsTitle": "How it helps",
+    "helps": [
+      {
+        "title": "Every clef",
+        "text": "Treble, bass and C (from the 1st to the 5th line), plus the real combinations: the piano's two-staff system and the clef that changes from one question to the next for cello and viola."
+      },
+      {
+        "title": "The key signature rules",
+        "text": "By default the note is clean and the key signature says whether that F is F♯ — the way repertoire is read. You can turn the signature off or draw the accidental next to the note."
+      },
+      {
+        "title": "Intervals by spelling",
+        "text": "Two notes, one after the other or together: first the number, then the quality. F–B and F–C♭ sound the same, but they are different intervals, and the app asks for the difference."
+      },
+      {
+        "title": "Keys",
+        "text": "The key signature appears on the staff and you name the key. Since the same signature serves the major key and its relative minor, the prompt always says which one it's asking for."
+      },
+      {
+        "title": "The range you need",
+        "text": "How many ledger lines come in, from 0 to 5 on each side, remembered per module: start inside the staff and move out little by little."
+      },
+      {
+        "title": "Hear what you read",
+        "text": "After you answer, the app plays the note (or the interval), so your ear learns along with your eyes."
+      }
+    ],
+    "howTitle": "Getting the most out of it",
+    "how": [
+      "A few minutes every day go further than an hour once in a while.",
+      "Answer fast: the goal is recognizing the note, not working it out. If you still need to count lines, the range is too wide — use fewer ledger lines.",
+      "When a clef gets easy, move on to your instrument's combination: piano, cello or viola.",
+      "Say the note name out loud before picking the answer.",
+      "Use letters (C D E) or solfège (Do Re Mi), whatever you use on the score — it's a setting, not the language."
+    ],
+    "projectTitle": "The project",
+    "project": "Sheetwise belongs to a family of study apps that work the same way: sightwise (sight-reading), fretwise (the guitar fretboard), keyswise (piano chords), earwise (ear training) and mathwise (mental math). It runs in the browser and on Android.",
+    "creditsTitle": "Credits",
+    "credits": [
+      "Staff engraving with VexFlow; clefs and accidentals in the Bravura font (SIL Open Font License).",
+      "Piano sound from the MusyngKite soundfont by Christian Collins (Creative Commons Attribution), via gleitz/midi-js-soundfonts and smplr."
+    ],
+    "back": "Back to practice"
   }
 }

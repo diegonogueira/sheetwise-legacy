@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_MODULE, moduleFromPath, parseModule, pathForModule } from './routes'
+import { ABOUT_PATH, DEFAULT_MODULE, isAboutPath, moduleFromPath, parseModule, pathForModule } from './routes'
 import { MODULES } from '../core/module'
 
 describe('rotas', () => {
@@ -45,5 +45,14 @@ describe('rotas', () => {
     expect(parseModule('markNote:treble')).toBeNull() // módulo removido
     expect(parseModule('lixo')).toBeNull()
     expect(parseModule(null)).toBeNull()
+  })
+
+  it('a página Sobre é /about e não é de módulo: o módulo continua o último aberto', () => {
+    expect(ABOUT_PATH).toBe('/about')
+    expect(isAboutPath('/about')).toBe(true)
+    expect(isAboutPath('/about/')).toBe(true)
+    expect(isAboutPath('/read-key')).toBe(false)
+    for (const m of MODULES) expect(pathForModule(m)).not.toBe(ABOUT_PATH)
+    expect(moduleFromPath(ABOUT_PATH, 'readInterval:piano')).toBe('readInterval:piano')
   })
 })

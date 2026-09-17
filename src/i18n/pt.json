@@ -141,5 +141,55 @@
     "3": "3ª",
     "4": "4ª",
     "5": "5ª"
+  },
+  "about": {
+    "title": "Sobre",
+    "nav": "Sobre o Sheetwise",
+    "tagline": "Notas, intervalos e armaduras nas claves de Sol, Fá e Dó, até a leitura ficar automática.",
+    "whatTitle": "Ler na pauta",
+    "what": "É olhar para uma nota e saber que nota é sem contar linhas — com o acidente que a armadura impõe, a distância até a próxima e a tonalidade da peça. É a base de toda leitura: quem ainda conta linhas não tem atenção sobrando para o ritmo, o dedilhado ou a música. E só fica automático de um jeito: com muitas repetições curtas e retorno na hora.",
+    "helpsTitle": "Em que ele ajuda",
+    "helps": [
+      {
+        "title": "Todas as claves",
+        "text": "Sol, Fá e Dó (da 1ª à 5ª linha), e as combinações de verdade: o sistema de duas pautas do piano e a clave que troca de uma questão para outra no violoncelo e na viola."
+      },
+      {
+        "title": "A armadura manda",
+        "text": "Por padrão a nota vem limpa e é a armadura que diz se aquele Fá é Fá♯ — como se lê repertório. Dá para tirar a armadura ou desenhar o acidente ao lado da nota."
+      },
+      {
+        "title": "Intervalos pela grafia",
+        "text": "Duas notas, uma depois da outra ou juntas: primeiro o número, depois a qualidade. Fá–Si e Fá–Dó♭ soam igual, mas são intervalos diferentes, e o app cobra a diferença."
+      },
+      {
+        "title": "Tonalidades",
+        "text": "A armadura aparece na pauta e você nomeia a tonalidade. Como a mesma armadura serve à maior e à relativa menor, o enunciado sempre diz qual das duas está pedindo."
+      },
+      {
+        "title": "Na faixa que você precisa",
+        "text": "Quantas linhas suplementares entram, de 0 a 5 de cada lado, lembrado por módulo: comece dentro da pauta e vá saindo aos poucos."
+      },
+      {
+        "title": "Ouvir o que leu",
+        "text": "Depois de responder, o app toca a nota (ou o intervalo), para o ouvido aprender junto com o olho."
+      }
+    ],
+    "howTitle": "Como tirar proveito",
+    "how": [
+      "Poucos minutos todos os dias rendem mais do que uma hora de vez em quando.",
+      "Responda rápido: o objetivo é reconhecer a nota, não calcular. Se ainda precisa contar linhas, a faixa está larga demais — diminua as linhas suplementares.",
+      "Quando uma clave ficar fácil, passe para a combinação do seu instrumento: piano, violoncelo ou viola.",
+      "Diga o nome da nota em voz alta antes de escolher a resposta.",
+      "Use letras (C D E) ou solfejo (Dó Ré Mi), o que você usa na partitura — é uma configuração, não o idioma."
+    ],
+    "projectTitle": "O projeto",
+    "project": "O Sheetwise faz parte de uma família de apps de estudo que funcionam do mesmo jeito: sightwise (leitura à primeira vista), fretwise (o braço do violão), keyswise (acordes no piano), earwise (percepção musical) e mathwise (cálculo mental). Ele roda no navegador e no Android.",
+    "creditsTitle": "Créditos",
+    "credits": [
+      "Pauta desenhada com VexFlow; claves e acidentes na fonte Bravura (SIL Open Font License).",
+      "Som de piano do soundfont MusyngKite, de Christian Collins (Creative Commons Attribution), via gleitz/midi-js-soundfonts e smplr."
+    ],
+    "back": "Voltar ao estudo"
   }
 }

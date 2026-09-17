@@ -4,6 +4,7 @@ import { TopBar } from './components/TopBar'
 import { Sidebar } from './components/Sidebar'
 import { SettingsPanel } from './components/Settings'
 import { ExercisePanel } from './components/ExercisePanel'
+import { AboutPage } from './components/About'
 import { useSettings, useModuleConfig } from './store/settings'
 import { useExercise } from './hooks/useExercise'
 import { useRoute } from './hooks/useRoute'
@@ -19,7 +20,7 @@ const MELODIC_GAP = 0.7
 
 export default function App() {
   const { t, i18n } = useTranslation()
-  const [module, navigate] = useRoute()
+  const { module, view, navigate, openAbout } = useRoute()
   const naming = useSettings((s) => s.naming)
   const audioEnabled = useSettings((s) => s.audioEnabled)
   const cClefLines = useSettings((s) => s.cClefLines)
@@ -73,10 +74,12 @@ export default function App() {
     ? `${t(`nav.group.${taskOf(module)}`)} — ${t(`clefSet.${setId}`)}`
     : t('nav.item.readKey')
 
-  // título da aba reflete o módulo ativo e o idioma corrente
+  const title = view === 'about' ? t('about.title') : moduleTitle
+
+  // título da aba reflete o que está aberto e o idioma corrente
   useEffect(() => {
-    document.title = `Sheetwise — ${moduleTitle}`
-  }, [moduleTitle, i18n.language])
+    document.title = `Sheetwise — ${title}`
+  }, [title, i18n.language])
 
   return (
     <div
@@ -97,7 +100,7 @@ export default function App() {
         }}
       />
       <TopBar
-        modeTitle={moduleTitle}
+        modeTitle={title}
         onOpenSettings={() => setSettingsOpen(true)}
         onToggleSidebar={() => setSidebarOpen(true)}
       />
@@ -106,15 +109,22 @@ export default function App() {
         <Sidebar
           module={module}
           onSelect={navigate}
+          about={view === 'about'}
+          onAbout={openAbout}
           open={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
         />
 
-        {/* O exercício ocupa o centro da altura livre. O nome do módulo vive na TopBar (e
+        {view === 'about' ? (
+          <main className="flex min-h-0 w-full min-w-0 flex-1 flex-col">
+            <AboutPage onBack={() => navigate(module)} />
+          </main>
+        ) : (
+        /* O exercício ocupa o centro da altura livre. O nome do módulo vive na TopBar (e
             aqui só para leitores de tela): como <h1> visível ele empurrava o cartão para
             baixo do meio — uma linha fina de texto no topo, e o olho lendo o vazio acima
             dela como topo, não como metade do miolo. `justify-center-safe` centraliza SEM
-            cortar o começo quando a pauta cresce (faixa larga, sistema de piano). */}
+            cortar o começo quando a pauta cresce (faixa larga, sistema de piano). */
         <main
           className={cx(
             'mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center-safe px-4',
@@ -131,6 +141,7 @@ export default function App() {
             compact={compact}
           />
         </main>
+        )}
       </div>
 
       {settingsOpen && <SettingsPanel module={module} onClose={() => setSettingsOpen(false)} />}
