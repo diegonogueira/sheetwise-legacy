@@ -1,17 +1,14 @@
+<!-- O ícone do mathwise: um número dentro de um cérebro — cálculo mental, não calculadora.
+     Paleta Noite da família *wise (#1e1b4b + #e0e7ff/#a5b4fc; wisekit, guia/01-identidade.md).
+     É também o favicon (public/favicon.svg é cópia, feita pelo scripts/gen-icons.sh). -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <!-- O ícone do mathwise: os quatro sinais das operações, um por módulo. Paleta Noite da
-       família *wise (wisekit, guia/01-identidade.md): ladrilho índigo, sinais em lavanda clara
-       e o ÷ — a conta que mais pede estratégia — em lavanda. É também o favicon
-       (public/favicon.svg é cópia, feita pelo scripts/gen-icons.sh). -->
   <rect width="64" height="64" rx="14" fill="#1e1b4b"/>
-  <g stroke="#e0e7ff" stroke-width="4" stroke-linecap="round" fill="none">
-    <path d="M21 15v14M14 22h14"/>
-    <path d="M36 22h14"/>
-    <path d="M16 38l10 10M26 38l-10 10"/>
+  <!-- o cérebro: dois hemisférios com o sulco no alto -->
+  <g fill="none" stroke="#e0e7ff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M32 15c-4-3-10-2-12 3-5 0-8 5-6 9-4 3-3 9 1 11 0 5 5 8 9 6 2 3 6 4 8 2"/>
+    <path d="M32 15c4-3 10-2 12 3 5 0 8 5 6 9 4 3 3 9-1 11 0 5-5 8-9 6-2 3-6 4-8 2"/>
+    <path d="M32 15v5"/>
   </g>
-  <path d="M36 43h14" stroke="#a5b4fc" stroke-width="4" stroke-linecap="round" fill="none"/>
-  <g fill="#a5b4fc">
-    <circle cx="43" cy="36.5" r="2.2"/>
-    <circle cx="43" cy="49.5" r="2.2"/>
-  </g>
+  <!-- o número por dentro: a conta que acontece na cabeça -->
+  <path d="M26 28h12l-7 15" fill="none" stroke="#a5b4fc" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
