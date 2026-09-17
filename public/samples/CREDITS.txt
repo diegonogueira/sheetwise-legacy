@@ -1,0 +1,6 @@
+Os samples em sf/MusyngKite vêm do projeto gleitz/midi-js-soundfonts
+(https://github.com/gleitz/midi-js-soundfonts), que empacota o soundfont MusyngKite
+de Christian Collins em bundles MIDI.js. Licença: Creative Commons Attribution
+(ver o README do repositório de origem).
+
+Baixados por scripts/fetch-samples.sh e versionados aqui para o app funcionar offline.

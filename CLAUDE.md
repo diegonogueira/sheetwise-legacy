@@ -9,6 +9,8 @@ aqui** — este arquivo guarda só o que é do sheetwise.
 ## Comandos
 
 ```bash
+npm run samples                          # baixa os samples do piano para public/samples (já versionados)
+
 npx vitest run src/core/clef.test.ts    # um arquivo
 npx vitest run -t "linha inferior"       # um teste pelo nome
 
@@ -119,8 +121,9 @@ Desenha com VexFlow e depois faz duas coisas à mão:
 ### Áudio
 
 `src/audio/player.ts` toca a nota (e as duas do intervalo, com `MELODIC_GAP` entre elas no
-melódico) com um soundfont de piano pelo smplr. O soundfont vem da rede: sem internet o app funciona
-mudo.
+melódico) com um soundfont de piano pelo smplr. Os samples são **arquivos locais** em
+`public/samples/` (MusyngKite, ogg e mp3, versionados, ~4,5 MB): o Android toca sem internet e o
+build não depende de rede. Sem os arquivos o app segue mudo e tenta de novo no próximo toque.
 
 ## Desvios do guia
 

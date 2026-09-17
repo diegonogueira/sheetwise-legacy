@@ -75,8 +75,8 @@ Deploy no homelab: `./bin/deploy` (Docker + nginx, porta `SHEETWISE_PORT`, padr�
 
 ## Estrutura
 
-A pauta é desenhada com **VexFlow** e o som é um soundfont de piano pelo **smplr** (carregado da
-CDN, então o som depende de rede). O chassi — React, Tailwind v4, Zustand, i18next, Capacitor —
+A pauta é desenhada com **VexFlow** e o som é um soundfont de piano pelo **smplr**, com os samples
+dentro do app (`public/samples`, `npm run samples`) — funciona sem internet. O chassi — React, Tailwind v4, Zustand, i18next, Capacitor —
 é o da família (wisekit).
 
 ```
@@ -98,10 +98,9 @@ src/
   store/         configurações persistidas
   lib/           rotas e utilitários
   i18n/          pt/en
-  audio/         player de soundfont
+  audio/         player de soundfont (samples locais em public/samples)
 ```
 
 ## O que ainda não tem
 
-Histórico de progresso, o módulo inverso de tonalidade (dada a tonalidade, montar a armadura) e
-som offline (samples dentro do app, como no sightwise).
+Histórico de progresso e o módulo inverso de tonalidade (dada a tonalidade, montar a armadura).

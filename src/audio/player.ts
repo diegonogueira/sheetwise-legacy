@@ -1,5 +1,7 @@
-// Áudio via smplr (soundfonts). Carregamento sob demanda e tolerante a falhas:
-// se a rede falhar (offline), o app segue funcionando sem som.
+// Áudio via smplr (soundfont de piano), carregado dos arquivos que vão dentro do app
+// (`public/samples/`, baixados por `npm run samples`), nunca de um CDN: o Android precisa tocar
+// sem internet. Carregamento sob demanda e tolerante a falhas: sem os samples, o app segue
+// funcionando em silêncio.
 
 import { Soundfont } from 'smplr'
 
@@ -15,17 +17,24 @@ function getContext(): AudioContext {
   return ctx
 }
 
+/** O arquivo local do piano: ogg em todo lugar, mp3 no Safari. */
+function sampleUrl(): string {
+  const ogg = typeof Audio !== 'undefined' && !!new Audio().canPlayType('audio/ogg; codecs="vorbis"')
+  return `${import.meta.env.BASE_URL}samples/sf/MusyngKite/${INSTRUMENT}-${ogg ? 'ogg' : 'mp3'}.js`
+}
+
 export function loadInstrument(): Promise<void> {
   if (loaded) return Promise.resolve()
   if (loadingPromise) return loadingPromise
 
-  const inst = new Soundfont(getContext(), { instrument: INSTRUMENT })
+  const inst = new Soundfont(getContext(), { instrumentUrl: sampleUrl() })
   loadingPromise = inst.load
     .then(() => {
       loaded = inst
     })
     .catch(() => {
-      /* falha de rede: segue sem áudio */
+      // sem os samples: segue sem áudio, e a próxima tentativa carrega de novo
+      loadingPromise = null
     })
   return loadingPromise
 }
