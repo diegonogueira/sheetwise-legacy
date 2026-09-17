@@ -8,6 +8,7 @@ import { isNoteModule, isReadInterval, usesCClef, type Module } from '../core/mo
 import { CLEF_IDS, LEDGER_COUNTS, type LedgerCount } from '../core/clef'
 import type { AccidentalMode, IntervalAsk, IntervalStyle, KeyAsk } from '../core/exercise'
 import { cx } from '../lib/cx'
+import { moduleTitle } from '../lib/moduleTitle'
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -73,7 +74,7 @@ function ModuleSettings({ module }: { module: Module }) {
   const { t } = useTranslation()
 
   return (
-    <Section title={t('settings.moduleSection')} help={t('settings.moduleHelp')}>
+    <Section title={moduleTitle(t, module)} help={t('settings.moduleHelp')}>
       <div className="divide-y divide-line">
         <Row label={t('settings.ledgerBelow')}>
           <Segmented
@@ -188,7 +189,7 @@ function KeySettings() {
   const { t } = useTranslation()
 
   return (
-    <Section title={t('settings.keySection')} help={t('settings.keyHelp')}>
+    <Section title={t('nav.item.readKey')} help={t('settings.keyHelp')}>
       <div className="divide-y divide-line">
         <Row label={t('settings.keyAsk')}>
           <Segmented
@@ -312,8 +313,9 @@ export function SettingsPanel({ module, onClose }: { module: Module; onClose: ()
         </div>
         </Section>
 
-        {isReadInterval(module) && <IntervalSettings module={module} />}
+        {/* o escopo do módulo abre com a seção que leva o nome dele; as específicas vêm depois */}
         {isNoteModule(module) && <ModuleSettings module={module} />}
+        {isReadInterval(module) && <IntervalSettings module={module} />}
         {usesCClef(module) && <CClefSettings />}
         {module === 'readKey' && <KeySettings />}
         {/* por último: é a ação mais drástica do modal e desfaz tudo o que vem acima */}

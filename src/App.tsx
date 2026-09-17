@@ -9,7 +9,7 @@ import { useSettings, useModuleConfig } from './store/settings'
 import { useExercise } from './hooks/useExercise'
 import { useRoute } from './hooks/useRoute'
 import { useShortLandscape } from './hooks/useMediaQuery'
-import { clefSetOf, isNoteModule, taskOf } from './core/module'
+import { moduleTitle } from './lib/moduleTitle'
 import type { IntervalConfig, KeyConfig, NoteConfig } from './core/exercise'
 import { loadInstrument, playMidi } from './audio/player'
 import { syncStatusBar } from './native/statusBar'
@@ -68,13 +68,7 @@ export default function App() {
     void syncStatusBar(compact)
   }, [compact])
 
-  // título do módulo: grupo (tarefa) + conjunto de claves, como no menu
-  const setId = clefSetOf(module)
-  const moduleTitle = isNoteModule(module)
-    ? `${t(`nav.group.${taskOf(module)}`)} — ${t(`clefSet.${setId}`)}`
-    : t('nav.item.readKey')
-
-  const title = view === 'about' ? t('about.title') : moduleTitle
+  const title = view === 'about' ? t('about.title') : moduleTitle(t, module)
 
   // título da aba reflete o que está aberto e o idioma corrente
   useEffect(() => {
@@ -137,7 +131,7 @@ export default function App() {
             compact ? 'gap-2 px-2 py-1' : 'gap-4 px-4 py-5',
           )}
         >
-          <h1 className="sr-only">{moduleTitle}</h1>
+          <h1 className="sr-only">{title}</h1>
 
           <ExercisePanel
             exercise={exercise}
