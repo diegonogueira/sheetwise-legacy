@@ -1,8 +1,9 @@
-import { ArrowUpDown, Info, KeySquare, Music2, RotateCcw } from 'lucide-react'
+import { ArrowUpDown, Blocks, Info, KeySquare, Music2, RotateCcw } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CLEF_SET_IDS } from '../core/clefSet'
 import { NOTE_TASKS, type Module, type Task } from '../core/module'
+import type { View } from '../hooks/useRoute'
 import { setLanguage } from '../i18n'
 import { useSettings } from '../store/settings'
 import { cx } from '../lib/cx'
@@ -10,9 +11,9 @@ import { cx } from '../lib/cx'
 interface SidebarProps {
   module: Module
   onSelect: (m: Module) => void
-  /** a página "Sobre" está aberta (nenhum módulo fica marcado) */
-  about: boolean
-  onAbout: () => void
+  /** uma página do menu está aberta (e aí nenhum módulo fica marcado) */
+  view: View
+  onOpenPage: (view: Exclude<View, 'practice'>) => void
   /** drawer aberto (apenas mobile) */
   open: boolean
   onClose: () => void
@@ -114,9 +115,11 @@ function ResetAll() {
   )
 }
 
-type NavProps = Pick<SidebarProps, 'module' | 'onSelect' | 'about' | 'onAbout'>
+type NavProps = Pick<SidebarProps, 'module' | 'onSelect' | 'view' | 'onOpenPage'>
 
-function Nav({ module, onSelect, about, onAbout }: NavProps) {
+function Nav({ module, onSelect, view, onOpenPage }: NavProps) {
+  // com uma página do menu aberta, nenhum módulo fica marcado
+  const onPage = view !== 'practice'
   const { t } = useTranslation()
   return (
     <nav className="flex flex-col gap-5">
@@ -129,7 +132,7 @@ function Nav({ module, onSelect, about, onAbout }: NavProps) {
             </h2>
             <ul className="flex flex-col gap-0.5">
               {group.items.map((item) => {
-                const active = !about && module === item.module
+                const active = !onPage && module === item.module
                 return (
                   <li key={item.module}>
                     <button
@@ -156,15 +159,27 @@ function Nav({ module, onSelect, about, onAbout }: NavProps) {
       <div className="flex flex-col gap-1">
         <button
           type="button"
-          onClick={onAbout}
-          aria-current={about ? 'page' : undefined}
+          onClick={() => onOpenPage('about')}
+          aria-current={view === 'about' ? 'page' : undefined}
           className={cx(
             'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors',
-            about ? 'bg-accent-soft font-medium text-accent' : 'text-muted hover:bg-line hover:text-ink',
+            view === 'about' ? 'bg-accent-soft font-medium text-accent' : 'text-muted hover:bg-line hover:text-ink',
           )}
         >
           <Info size={16} className="shrink-0" />
           {t('about.nav')}
+        </button>
+        <button
+          type="button"
+          onClick={() => onOpenPage('otherApps')}
+          aria-current={view === 'otherApps' ? 'page' : undefined}
+          className={cx(
+            'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors',
+            view === 'otherApps' ? 'bg-accent-soft font-medium text-accent' : 'text-muted hover:bg-line hover:text-ink',
+          )}
+        >
+          <Blocks size={16} className="shrink-0" />
+          {t('otherApps.nav')}
         </button>
         <ResetAll />
         <LangSwitcher />
@@ -173,13 +188,13 @@ function Nav({ module, onSelect, about, onAbout }: NavProps) {
   )
 }
 
-export function Sidebar({ module, onSelect, about, onAbout, open, onClose, compact }: SidebarProps) {
+export function Sidebar({ module, onSelect, view, onOpenPage, open, onClose, compact }: SidebarProps) {
   return (
     <>
       {/* coluna fixa em telas largas; rola por dentro, a tela é uma só */}
       <aside className={cx('hidden w-60 shrink-0 overflow-y-auto border-r border-line bg-surface', compact ? '' : 'lg:block')}>
         <div className="p-3">
-          <Nav module={module} onSelect={onSelect} about={about} onAbout={onAbout} />
+          <Nav module={module} onSelect={onSelect} view={view} onOpenPage={onOpenPage} />
         </div>
       </aside>
 
@@ -201,9 +216,9 @@ export function Sidebar({ module, onSelect, about, onAbout, open, onClose, compa
                 onSelect(m)
                 onClose()
               }}
-              about={about}
-              onAbout={() => {
-                onAbout()
+              view={view}
+              onOpenPage={(page) => {
+                onOpenPage(page)
                 onClose()
               }}
             />

@@ -1,0 +1,28 @@
+<!-- O ícone do keyswise: um trecho de teclado com um acorde aceso — Dó, Mi e Sol em lavanda.
+     Paleta Noite da família *wise (#1e1b4b + #e0e7ff/#a5b4fc; wisekit, guia/01-identidade.md).
+     É também o favicon (public/favicon.svg é cópia, feita pelo scripts/gen-icons.sh). -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#1e1b4b"/>
+  <g>
+    <!-- cinco teclas brancas, de Dó a Sol -->
+    <g fill="#e0e7ff">
+      <rect x="12" y="16" width="7.2" height="32" rx="1.6"/>
+      <rect x="20.15" y="16" width="7.2" height="32" rx="1.6"/>
+      <rect x="28.3" y="16" width="7.2" height="32" rx="1.6"/>
+      <rect x="36.45" y="16" width="7.2" height="32" rx="1.6"/>
+      <rect x="44.6" y="16" width="7.2" height="32" rx="1.6"/>
+    </g>
+    <!-- o acorde: Dó, Mi e Sol acesos em lavanda (o voicing que o app ensina a ler) -->
+    <g fill="#a5b4fc">
+      <rect x="12" y="16" width="7.2" height="32" rx="1.6"/>
+      <rect x="28.3" y="16" width="7.2" height="32" rx="1.6"/>
+      <rect x="44.6" y="16" width="7.2" height="32" rx="1.6"/>
+    </g>
+    <!-- as pretas (Dó♯, Ré♯, Fá♯) na cor do fundo, por cima -->
+    <g fill="#1e1b4b">
+      <rect x="17.2" y="14" width="5" height="20" rx="1.2"/>
+      <rect x="25.35" y="14" width="5" height="20" rx="1.2"/>
+      <rect x="41.65" y="14" width="5" height="20" rx="1.2"/>
+    </g>
+  </g>
+</svg>

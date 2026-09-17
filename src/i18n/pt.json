@@ -195,6 +195,12 @@
     ],
     "back": "Voltar ao estudo"
   },
+  "otherApps": {
+    "nav": "Outros apps",
+    "title": "Conheça os outros apps",
+    "intro": "Apps de estudo da mesma família: mesmo jeito de usar, outro assunto.",
+    "soon": "Ainda não publicados — por enquanto, é só para você saber que existem."
+  },
   "resetAll": {
     "nav": "Redefinir tudo",
     "ask": "Volta tudo como veio de fábrica: os ajustes gerais e os de todos os módulos. O idioma fica.",

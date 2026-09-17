@@ -5,6 +5,7 @@ import { Sidebar } from './components/Sidebar'
 import { SettingsPanel } from './components/Settings'
 import { ExercisePanel } from './components/ExercisePanel'
 import { AboutPage } from './components/About'
+import { OtherAppsPage } from './components/OtherApps'
 import { useSettings, useModuleConfig } from './store/settings'
 import { useExercise } from './hooks/useExercise'
 import { useRoute } from './hooks/useRoute'
@@ -20,7 +21,7 @@ const MELODIC_GAP = 0.7
 
 export default function App() {
   const { t, i18n } = useTranslation()
-  const { module, view, navigate, openAbout } = useRoute()
+  const { module, view, navigate, openPage } = useRoute()
   const naming = useSettings((s) => s.naming)
   const audioEnabled = useSettings((s) => s.audioEnabled)
   const cClefLines = useSettings((s) => s.cClefLines)
@@ -68,7 +69,8 @@ export default function App() {
     void syncStatusBar(compact)
   }, [compact])
 
-  const title = view === 'about' ? t('about.title') : moduleTitle(t, module)
+  const title =
+    view === 'about' ? t('about.title') : view === 'otherApps' ? t('otherApps.title') : moduleTitle(t, module)
 
   // título da aba reflete o que está aberto e o idioma corrente
   useEffect(() => {
@@ -108,16 +110,20 @@ export default function App() {
         <Sidebar
           module={module}
           onSelect={navigate}
-          about={view === 'about'}
-          onAbout={openAbout}
+          view={view}
+          onOpenPage={openPage}
           open={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
           compact={compact}
         />
 
-        {view === 'about' ? (
+        {view !== 'practice' ? (
           <main className="flex min-h-0 w-full min-w-0 flex-1 flex-col">
-            <AboutPage onBack={() => navigate(module)} />
+            {view === 'about' ? (
+              <AboutPage onBack={() => navigate(module)} />
+            ) : (
+              <OtherAppsPage current="sheetwise" onBack={() => navigate(module)} />
+            )}
           </main>
         ) : (
         /* O exercício fica no topo, nunca centrado na vertical: ao responder o painel

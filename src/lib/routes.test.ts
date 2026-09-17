@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { ABOUT_PATH, DEFAULT_MODULE, isAboutPath, moduleFromPath, parseModule, pathForModule } from './routes'
+import {
+  ABOUT_PATH,
+  DEFAULT_MODULE,
+  OTHER_APPS_PATH,
+  isAboutPath,
+  isOtherAppsPath,
+  moduleFromPath,
+  parseModule,
+  pathForModule,
+} from './routes'
 import { MODULES } from '../core/module'
 
 describe('rotas', () => {
@@ -54,5 +63,15 @@ describe('rotas', () => {
     expect(isAboutPath('/read-key')).toBe(false)
     for (const m of MODULES) expect(pathForModule(m)).not.toBe(ABOUT_PATH)
     expect(moduleFromPath(ABOUT_PATH, 'readInterval:piano')).toBe('readInterval:piano')
+  })
+
+  it('a página Outros apps é /other-apps e também não é de módulo', () => {
+    expect(OTHER_APPS_PATH).toBe('/other-apps')
+    expect(isOtherAppsPath('/other-apps')).toBe(true)
+    expect(isOtherAppsPath('/other-apps/')).toBe(true)
+    expect(isOtherAppsPath(ABOUT_PATH)).toBe(false)
+    expect(isAboutPath(OTHER_APPS_PATH)).toBe(false)
+    for (const m of MODULES) expect(pathForModule(m)).not.toBe(OTHER_APPS_PATH)
+    expect(moduleFromPath(OTHER_APPS_PATH, 'readInterval:piano')).toBe('readInterval:piano')
   })
 })

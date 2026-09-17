@@ -1,0 +1,23 @@
+<!-- O ícone do sightwise: a lupa andando pela partitura, com a colcheia em foco.
+     Paleta Noite (índigo profundo + lavanda): de propósito, NÃO é o roxo dos irmãos — o
+     sightwise tem identidade própria. É também o favicon (public/favicon.svg é cópia). -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <clipPath id="lente"><circle cx="34" cy="27" r="13.6"/></clipPath>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="#1e1b4b"/>
+  <!-- a arte um pouco menor e descida: o cabo não encosta no recorte redondo do ícone legado -->
+  <g transform="translate(32 33.5) scale(0.94) translate(-32 -32)">
+    <!-- o rastro: a lupa percorre a partitura -->
+    <path d="M6 20h9M9 28h7M6 36h9" stroke="#a5b4fc" stroke-opacity="0.45" stroke-width="3" stroke-linecap="round" fill="none"/>
+    <!-- a pauta aumentada, só dentro da lente -->
+    <path d="M16 19H52M16 28H52M16 37H52" stroke="#e0e7ff" stroke-opacity="0.28" stroke-width="2.2" fill="none" clip-path="url(#lente)"/>
+    <!-- a colcheia em foco; a bandeirola em lavanda é a parte que anda -->
+    <ellipse cx="31.5" cy="33" rx="5.8" ry="4.5" transform="rotate(-20 31.5 33)" fill="#e0e7ff"/>
+    <path d="M37 31.3V17" stroke="#e0e7ff" stroke-width="2.7" stroke-linecap="round" fill="none"/>
+    <path d="M37 17c1.5 3.8 7 5.2 7 10.5" stroke="#a5b4fc" stroke-width="2.7" stroke-linecap="round" fill="none"/>
+    <!-- a lente e o cabo -->
+    <circle cx="34" cy="27" r="15.4" stroke="#e0e7ff" stroke-width="3.4" fill="none"/>
+    <path d="M45 38L55 48" stroke="#e0e7ff" stroke-width="6" stroke-linecap="round" fill="none"/>
+  </g>
+</svg>

@@ -1,6 +1,15 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { Module } from '../core/module'
-import { ABOUT_PATH, DEFAULT_MODULE, isAboutPath, moduleFromPath, parseModule, pathForModule } from '../lib/routes'
+import {
+  ABOUT_PATH,
+  DEFAULT_MODULE,
+  OTHER_APPS_PATH,
+  isAboutPath,
+  isOtherAppsPath,
+  moduleFromPath,
+  parseModule,
+  pathForModule,
+} from '../lib/routes'
 
 /**
  * Último módulo aberto. Fica fora do store de configurações pelo mesmo motivo do idioma:
@@ -16,17 +25,24 @@ function lastModule(): Module {
   }
 }
 
-/** O estudo (de um módulo) ou a página "Sobre". */
-export type View = 'practice' | 'about'
+/** O estudo (de um módulo) ou uma das páginas do menu. */
+export type View = 'practice' | 'about' | 'otherApps'
 
-const viewOf = (pathname: string): View => (isAboutPath(pathname) ? 'about' : 'practice')
+/** As páginas que não são de módulo, cada uma no seu caminho. */
+const PAGES: { view: View; path: string; is: (p: string) => boolean }[] = [
+  { view: 'about', path: ABOUT_PATH, is: isAboutPath },
+  { view: 'otherApps', path: OTHER_APPS_PATH, is: isOtherAppsPath },
+]
+
+const viewOf = (pathname: string): View => PAGES.find((p) => p.is(pathname))?.view ?? 'practice'
 
 export interface Route {
   module: Module
   view: View
-  /** abre o estudo de um módulo (também é como se sai do "Sobre") */
+  /** abre o estudo de um módulo (também é como se sai das páginas do menu) */
   navigate: (m: Module) => void
-  openAbout: () => void
+  /** abre uma das páginas do menu (Sobre, Outros apps) */
+  openPage: (view: Exclude<View, 'practice'>) => void
 }
 
 /**
@@ -35,8 +51,8 @@ export interface Route {
  * histórico.
  *
  * Um link direto abre o módulo dele. Sem módulo na URL — "/", que é como o app Android
- * sempre abre — volta ao último módulo aberto. Em `/about` o módulo continua o último
- * aberto, que é para onde se volta.
+ * sempre abre — volta ao último módulo aberto. Em `/about` e em `/other-apps` o módulo
+ * continua o último aberto, que é para onde se volta.
  */
 export function useRoute(): Route {
   const [module, setModule] = useState<Module>(() =>
@@ -47,7 +63,8 @@ export function useRoute(): Route {
   useEffect(() => {
     // canoniza a URL inicial sem criar entrada no histórico
     const here = window.location.pathname
-    const canonical = isAboutPath(here) ? ABOUT_PATH : pathForModule(moduleFromPath(here, lastModule()))
+    const page = PAGES.find((p) => p.is(here))
+    const canonical = page ? page.path : pathForModule(moduleFromPath(here, lastModule()))
     if (here !== canonical) {
       window.history.replaceState(null, '', canonical + window.location.search)
     }
@@ -78,10 +95,11 @@ export function useRoute(): Route {
     setView('practice')
   }, [])
 
-  const openAbout = useCallback(() => {
-    if (!isAboutPath(window.location.pathname)) window.history.pushState(null, '', ABOUT_PATH)
-    setView('about')
+  const openPage = useCallback((next: Exclude<View, 'practice'>) => {
+    const path = PAGES.find((p) => p.view === next)!.path
+    if (window.location.pathname !== path) window.history.pushState(null, '', path)
+    setView(next)
   }, [])
 
-  return { module, view, navigate, openAbout }
+  return { module, view, navigate, openPage }
 }

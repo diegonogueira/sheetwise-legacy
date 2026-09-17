@@ -49,9 +49,14 @@ export function parseModule(id: string | null): Module | null {
   return MODULES.find((m) => m === id) ?? null
 }
 
-/** A página "Sobre": não é de módulo, e o módulo aberto continua o último. */
+/** As páginas que não são de módulo: o módulo aberto continua o último. */
 export const ABOUT_PATH = '/about'
+export const OTHER_APPS_PATH = '/other-apps'
 
 export function isAboutPath(pathname: string): boolean {
   return (pathname.replace(/\/+$/, '') || '/') === ABOUT_PATH
+}
+
+export function isOtherAppsPath(pathname: string): boolean {
+  return (pathname.replace(/\/+$/, '') || '/') === OTHER_APPS_PATH
 }

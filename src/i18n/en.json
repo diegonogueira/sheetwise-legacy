@@ -195,6 +195,12 @@
     ],
     "back": "Back to practice"
   },
+  "otherApps": {
+    "nav": "Other apps",
+    "title": "Meet the other apps",
+    "intro": "Study apps from the same family: same way of working, another subject.",
+    "soon": "Not published yet — for now, just so you know they exist."
+  },
   "resetAll": {
     "nav": "Reset everything",
     "ask": "Puts everything back as it came: the general settings and those of every module. Your language stays.",
