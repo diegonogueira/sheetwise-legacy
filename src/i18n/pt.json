@@ -100,12 +100,14 @@
     "aria": {
       "close": "Fechar"
     },
+    "general": "Geral",
+    "generalHelp": "Vale para todos os módulos.",
     "naming": "Nomes das notas",
     "namingLetters": "C D E",
     "namingSolfege": "Dó Ré Mi",
     "audio": "Som",
-    "audioOn": "Ligado",
-    "audioOff": "Desligado",
+    "on": "Sim",
+    "off": "Não",
     "moduleSection": "Neste módulo",
     "ledgerBelow": "Linhas suplementares abaixo",
     "ledgerAbove": "Linhas suplementares acima",
@@ -133,7 +135,10 @@
     "intervalMelodic": "Melódico",
     "intervalHarmonic": "Harmônico",
     "intervalBoth": "Os dois",
-    "intervalHelp": "Melódico: uma nota depois da outra; harmônico: as duas juntas. O número (3ª) se lê contando linhas e espaços; a qualidade (3ª menor ou maior) depende dos acidentes — com armadura, é ela quem decide."
+    "intervalHelp": "Melódico: uma nota depois da outra; harmônico: as duas juntas. O número (3ª) se lê contando linhas e espaços; a qualidade (3ª menor ou maior) depende dos acidentes — com armadura, é ela quem decide.",
+    "factory": "Restaurar padrões",
+    "factoryConfirm": "Confirmar?",
+    "factoryHelp": "Volta este módulo como veio de fábrica: tudo o que aparece abaixo de Geral. Os ajustes gerais ficam."
   },
   "line": {
     "1": "1ª",
@@ -191,5 +196,11 @@
       "Som de piano do soundfont MusyngKite, de Christian Collins (Creative Commons Attribution), via gleitz/midi-js-soundfonts e smplr."
     ],
     "back": "Voltar ao estudo"
+  },
+  "resetAll": {
+    "nav": "Redefinir tudo",
+    "ask": "Volta tudo como veio de fábrica: os ajustes gerais e os de todos os módulos. O idioma fica.",
+    "yes": "Redefinir",
+    "no": "Cancelar"
   }
 }

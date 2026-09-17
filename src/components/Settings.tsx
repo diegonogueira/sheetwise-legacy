@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react'
-import { X } from 'lucide-react'
+import { useState, type ReactNode } from 'react'
+import { RotateCcw, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useSettings, useModuleConfig } from '../store/settings'
 import { Segmented } from './ui/Segmented'
@@ -18,9 +18,17 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   )
 }
 
-function Section({ title, children, help }: { title: string; children: ReactNode; help: string }) {
+interface SectionProps {
+  title: string
+  children: ReactNode
+  help: string
+  /** a primeira seção dispensa a linha de cima */
+  first?: boolean
+}
+
+function Section({ title, children, help, first }: SectionProps) {
   return (
-    <div className="mt-2 border-t border-line pt-3">
+    <div className={first ? '' : 'mt-2 border-t border-line pt-3'}>
       <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-faint">{title}</h3>
       {children}
       <p className="mt-2 text-xs text-faint">{help}</p>
@@ -218,6 +226,42 @@ function KeySettings() {
   )
 }
 
+/**
+ * "Restaurar padrões": volta o módulo aberto ao estado de fábrica. É o último bloco do modal
+ * porque desfaz tudo o que vem acima dele (menos Geral), e pede confirmação no próprio botão:
+ * um toque arma, o outro confirma, perder o foco desarma.
+ */
+function FactoryReset({ module }: { module: Module }) {
+  const reset = useSettings((s) => s.resetModule)
+  const [armed, setArmed] = useState(false)
+  const { t } = useTranslation()
+
+  return (
+    <div className="mt-2 flex items-center justify-between gap-3 border-t border-line pt-3">
+      <span className="text-xs text-faint">{t('settings.factoryHelp')}</span>
+      <button
+        type="button"
+        onClick={() => {
+          if (!armed) {
+            setArmed(true)
+            return
+          }
+          reset(module)
+          setArmed(false)
+        }}
+        onBlur={() => setArmed(false)}
+        className={cx(
+          'flex shrink-0 items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors',
+          armed ? 'border-wrong bg-wrong-soft text-wrong' : 'border-line text-muted hover:border-accent hover:text-accent',
+        )}
+      >
+        <RotateCcw size={12} />
+        {armed ? t('settings.factoryConfirm') : t('settings.factory')}
+      </button>
+    </div>
+  )
+}
+
 export function SettingsPanel({ module, onClose }: { module: Module; onClose: () => void }) {
   const naming = useSettings((s) => s.naming)
   const setNaming = useSettings((s) => s.setNaming)
@@ -241,6 +285,7 @@ export function SettingsPanel({ module, onClose }: { module: Module; onClose: ()
           </button>
         </div>
 
+        <Section first title={t('settings.general')} help={t('settings.generalHelp')}>
         <div className="divide-y divide-line">
           <Row label={t('settings.naming')}>
             <Segmented
@@ -259,17 +304,20 @@ export function SettingsPanel({ module, onClose }: { module: Module; onClose: ()
               value={audioEnabled ? 'on' : 'off'}
               onChange={(v) => setAudioEnabled(v === 'on')}
               options={[
-                { value: 'on', label: t('settings.audioOn') },
-                { value: 'off', label: t('settings.audioOff') },
+                { value: 'on', label: t('settings.on') },
+                { value: 'off', label: t('settings.off') },
               ]}
             />
           </Row>
         </div>
+        </Section>
 
         {isReadInterval(module) && <IntervalSettings module={module} />}
         {isNoteModule(module) && <ModuleSettings module={module} />}
         {usesCClef(module) && <CClefSettings />}
         {module === 'readKey' && <KeySettings />}
+        {/* por último: é a ação mais drástica do modal e desfaz tudo o que vem acima */}
+        <FactoryReset module={module} />
       </div>
     </div>
   )

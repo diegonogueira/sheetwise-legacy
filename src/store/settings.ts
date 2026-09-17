@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { useShallow } from 'zustand/react/shallow'
-import { MODULES, type Module } from '../core/module'
+import { MODULES, usesCClef, type Module } from '../core/module'
 import { DEFAULT_C_CLEF_LINES, type CClefLine } from '../core/clefSet'
 import type { ClefId, LedgerCount } from '../core/clef'
 import type { AccidentalMode, IntervalAsk, IntervalStyle, KeyAsk } from '../core/exercise'
@@ -52,6 +52,22 @@ function patchModule(
   return next
 }
 
+/**
+ * Os ajustes que não são de um módulo, como vêm de fábrica. `naming` e `audioEnabled` são da
+ * seção Geral; as linhas da clave de Dó e a tonalidade aparecem só na seção dos módulos delas,
+ * então voltam junto com o "Restaurar padrões" desses módulos.
+ */
+const GENERAL_DEFAULTS = {
+  naming: 'letters' as Naming,
+  audioEnabled: true,
+}
+const C_CLEF_DEFAULTS = () => ({ cClefLines: [...DEFAULT_C_CLEF_LINES] })
+const KEY_DEFAULTS = () => ({
+  keyAsk: 'major' as KeyAsk,
+  keyMaxAccidentals: 4,
+  keyClefs: ['treble', 'bass'] as ClefId[],
+})
+
 interface SettingsState {
   // --- globais (valem para todos os módulos) ---
   /** nomes em letras (C D E) ou solfejo (Dó Ré Mi) — é config, não idioma */
@@ -78,6 +94,13 @@ interface SettingsState {
   setKeyAsk: (v: KeyAsk) => void
   setKeyMaxAccidentals: (v: number) => void
   toggleKeyClef: (clef: ClefId) => void
+  /**
+   * "Restaurar padrões": o módulo como vem de fábrica — o `ModuleConfig` dele e o que só
+   * aparece na seção dele (linhas da clave de Dó, a tonalidade). Os ajustes gerais ficam.
+   */
+  resetModule: (module: Module) => void
+  /** "Redefinir tudo": gerais e todos os módulos. O idioma e o último módulo ficam (não moram aqui). */
+  resetAll: () => void
 }
 
 /** Alterna um item mantendo ao menos um selecionado (a lista vazia trava o exercício). */
@@ -89,13 +112,10 @@ function toggleKeepingOne<T>(list: T[], item: T): T[] {
 export const useSettings = create<SettingsState>()(
   persist(
     (set) => ({
-      naming: 'letters',
-      audioEnabled: true,
+      ...GENERAL_DEFAULTS,
       modules: modulesFrom(DEFAULT_MODULE_CONFIG),
-      cClefLines: [...DEFAULT_C_CLEF_LINES],
-      keyAsk: 'major',
-      keyMaxAccidentals: 4,
-      keyClefs: ['treble', 'bass'],
+      ...C_CLEF_DEFAULTS(),
+      ...KEY_DEFAULTS(),
       setNaming: (naming) => set({ naming }),
       setAudioEnabled: (audioEnabled) => set({ audioEnabled }),
       setLedger: (module, side, v) =>
@@ -114,6 +134,14 @@ export const useSettings = create<SettingsState>()(
       setKeyAsk: (keyAsk) => set({ keyAsk }),
       setKeyMaxAccidentals: (keyMaxAccidentals) => set({ keyMaxAccidentals }),
       toggleKeyClef: (clef) => set((s) => ({ keyClefs: toggleKeepingOne(s.keyClefs, clef) })),
+      resetModule: (module) =>
+        set((s) => ({
+          modules: patchModule(s.modules, module, DEFAULT_MODULE_CONFIG),
+          ...(usesCClef(module) ? C_CLEF_DEFAULTS() : {}),
+          ...(module === 'readKey' ? KEY_DEFAULTS() : {}),
+        })),
+      resetAll: () =>
+        set({ ...GENERAL_DEFAULTS, modules: modulesFrom(DEFAULT_MODULE_CONFIG), ...C_CLEF_DEFAULTS(), ...KEY_DEFAULTS() }),
     }),
     {
       name: 'sheetwise-settings',

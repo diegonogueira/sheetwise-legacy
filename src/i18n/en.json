@@ -100,12 +100,14 @@
     "aria": {
       "close": "Close"
     },
+    "general": "General",
+    "generalHelp": "Applies to every module.",
     "naming": "Note names",
     "namingLetters": "C D E",
     "namingSolfege": "Do Re Mi",
     "audio": "Sound",
-    "audioOn": "On",
-    "audioOff": "Off",
+    "on": "Yes",
+    "off": "No",
     "moduleSection": "This module",
     "ledgerBelow": "Ledger lines below",
     "ledgerAbove": "Ledger lines above",
@@ -133,7 +135,10 @@
     "intervalMelodic": "Melodic",
     "intervalHarmonic": "Harmonic",
     "intervalBoth": "Both",
-    "intervalHelp": "Melodic: one note after the other; harmonic: both at once. The number (3rd) is read by counting lines and spaces; the quality (minor or major 3rd) depends on the accidentals — with a key signature, the signature decides."
+    "intervalHelp": "Melodic: one note after the other; harmonic: both at once. The number (3rd) is read by counting lines and spaces; the quality (minor or major 3rd) depends on the accidentals — with a key signature, the signature decides.",
+    "factory": "Restore defaults",
+    "factoryConfirm": "Confirm?",
+    "factoryHelp": "Puts this module back as it came: everything below General. General settings stay."
   },
   "line": {
     "1": "1st",
@@ -191,5 +196,11 @@
       "Piano sound from the MusyngKite soundfont by Christian Collins (Creative Commons Attribution), via gleitz/midi-js-soundfonts and smplr."
     ],
     "back": "Back to practice"
+  },
+  "resetAll": {
+    "nav": "Reset everything",
+    "ask": "Puts everything back as it came: the general settings and those of every module. Your language stays.",
+    "yes": "Reset",
+    "no": "Cancel"
   }
 }
