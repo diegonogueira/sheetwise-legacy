@@ -16,6 +16,8 @@ interface SidebarProps {
   /** drawer aberto (apenas mobile) */
   open: boolean
   onClose: () => void
+  /** celular deitado: a coluna fixa sai de cena e sobra só a gaveta */
+  compact: boolean
 }
 
 const TASK_ICON: Record<Task, typeof Music2> = {
@@ -171,19 +173,19 @@ function Nav({ module, onSelect, about, onAbout }: NavProps) {
   )
 }
 
-export function Sidebar({ module, onSelect, about, onAbout, open, onClose }: SidebarProps) {
+export function Sidebar({ module, onSelect, about, onAbout, open, onClose, compact }: SidebarProps) {
   return (
     <>
-      {/* coluna fixa em telas largas (desktop) */}
-      <aside className="hidden w-60 shrink-0 border-r border-line bg-surface lg:block">
-        <div className="sticky top-[49px] p-3">
+      {/* coluna fixa em telas largas; rola por dentro, a tela é uma só */}
+      <aside className={cx('hidden w-60 shrink-0 overflow-y-auto border-r border-line bg-surface', compact ? '' : 'lg:block')}>
+        <div className="p-3">
           <Nav module={module} onSelect={onSelect} about={about} onAbout={onAbout} />
         </div>
       </aside>
 
-      {/* drawer deslizante no mobile/tablet */}
+      {/* gaveta deslizante no mobile/tablet (e na paisagem curta) */}
       {open && (
-        <div className="fixed inset-0 z-40 lg:hidden">
+        <div className={cx('fixed inset-0 z-40', compact ? '' : 'lg:hidden')}>
           <div className="absolute inset-0 bg-black/30" onClick={onClose} />
           {/* drawer de altura total: reserva as safe-areas do topo e da base */}
           <div

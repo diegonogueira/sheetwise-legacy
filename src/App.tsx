@@ -83,7 +83,9 @@ export default function App() {
 
   return (
     <div
-      className={cx('flex flex-col', compact ? 'h-[100dvh] overflow-hidden' : 'min-h-screen')}
+      // A tela é uma só, em qualquer orientação: a altura é a da janela e quem rola é o
+      // conteúdo, por dentro. Deixar a página crescer empurrava o exercício para fora da tela.
+      className="flex h-[100dvh] flex-col overflow-hidden"
       // a barra de gestos do Android é desenhada SOBRE o fim da WebView; sem descontá-la o
       // centro do layout cai abaixo do centro do que se enxerga
       style={{ paddingBottom: 'var(--safe-area-inset-bottom, env(safe-area-inset-bottom))' }}
@@ -99,8 +101,11 @@ export default function App() {
           backgroundColor: 'var(--color-bg)',
         }}
       />
+      {/* a barra fica também na paisagem curta, só mais fina: é por ela que se chega ao
+          menu e aos ajustes com o celular deitado */}
       <TopBar
-        modeTitle={title}
+        title={title}
+        compact={compact}
         onOpenSettings={() => setSettingsOpen(true)}
         onToggleSidebar={() => setSidebarOpen(true)}
       />
@@ -113,6 +118,7 @@ export default function App() {
           onAbout={openAbout}
           open={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
+          compact={compact}
         />
 
         {view === 'about' ? (
@@ -127,8 +133,8 @@ export default function App() {
             cortar o começo quando a pauta cresce (faixa larga, sistema de piano). */
         <main
           className={cx(
-            'mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center-safe px-4',
-            compact ? 'min-h-0 gap-2 overflow-y-auto py-2' : 'gap-4 py-5',
+            'mx-auto flex w-full min-w-0 max-w-3xl flex-1 flex-col justify-center-safe overflow-y-auto',
+            compact ? 'gap-2 px-2 py-1' : 'gap-4 px-4 py-5',
           )}
         >
           <h1 className="sr-only">{moduleTitle}</h1>
